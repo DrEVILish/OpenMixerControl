@@ -147,6 +147,18 @@ enum class MP_CAT {
     __ELEMENT_COUNTER_DO_NOT_MOVE
 };
 
+// Clientparameter Categorys
+enum class ClientparameterCategory {
+    NONE,
+    SETTING,
+    STATE,
+    GLOBAL,
+    DISPLAY,
+    DMX,
+
+    __ELEMENT_COUNTER_DO_NOT_MOVE
+};
+
 /// @brief Mixerparameter ID
 enum class MP_ID {
     NONE,
@@ -184,7 +196,6 @@ enum class MP_ID {
 
     //ACTIVE_SCENE,
     SELECTED_CHANNEL,
-    ACTIVE_PAGE,
     BANKING_EQ,
     BANKING_INPUT,
     BANKING_BUS,
@@ -472,6 +483,17 @@ enum class MP_ID {
 
     __ELEMENT_COUNTER_DO_NOT_MOVE
 };
+
+
+/// @brief Clientparameter IDs
+enum class ClientParameterId {
+    NONE,
+
+    ACTIVE_PAGE,
+
+    __ELEMENT_COUNTER_DO_NOT_MOVE
+};
+
 
 // @brief Surfaceelement ID
 enum class SurfaceElementId
@@ -993,6 +1015,8 @@ enum class SurfaceElementId
 
     __ELEMENT_COUNTER_DO_NOT_MOVE
 };
+
+
 
 // Surfaceelement Type
 enum class SurfaceElementType {

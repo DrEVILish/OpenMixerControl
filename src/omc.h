@@ -1,9 +1,11 @@
 #pragma once
 
+#include "config-server.h"
+#include "config-client.h"
 #include "ctrl-server.h"
 #include "ctrl-client.h"
 
-class OMC
+class OpenMixerControl
 {
     private:
 
@@ -14,7 +16,7 @@ class OMC
 
     public:
 
-        OMC(X32BaseParameter* basepar);
+        OpenMixerControl(X32BaseParameter* basepar, ConfigServer cs, ConfigClient cc);
         
         void Init();
         

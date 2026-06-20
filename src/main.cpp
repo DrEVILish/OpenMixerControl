@@ -42,8 +42,6 @@
   Parts of this software with kind permission of Music Tribe. Thank you!
 */
 
-#pragma once
-
 #include "main.h"
 
 #include "defines.h"
@@ -64,7 +62,7 @@
 // #include "eez/vars.h"
 
 
-OMC* omc;
+OpenMixerControl* omc;
 State* state;
 CLI::App* app;
 
@@ -72,6 +70,8 @@ timer_t timerid_10ms;
 struct sigevent sev_10ms;
 struct itimerspec trigger_10ms;
 uint8_t vtimercounter = 0;
+
+
 
 
 void timer100msCallbackLvgl(_lv_timer_t* lv_timer) { 
@@ -334,7 +334,7 @@ int main(int argc, char* argv[])
 		model_str = "X32RACK";
 	}
 
-	X32Config* config = new X32Config(model_str, helper);
+	ConfigServer* config = new ConfigServer(model_str, helper);
 
 	config->Set(MP_ID::SAMPLERATE, app->get_option("--samplerate")->as<uint32_t>());
 
@@ -372,7 +372,7 @@ int main(int argc, char* argv[])
 
 	X32BaseParameter* basepar = new X32BaseParameter(app, config, state, helper);
 
-	omc = new OMC(basepar);
+	omc = new OpenMixerControl(basepar);
 
 	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "omc->Init()");
 	omc->Init();  // initialize the whole thing and load config

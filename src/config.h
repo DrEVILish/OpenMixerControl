@@ -9,47 +9,35 @@
 
 #include "helper.h"
 
-#include "mixerparameter.h"
+#include "parameter.h"
+#include "parameter.h"
 #include "surfaceelement.h"
 #include "x32faderbank.h"
 #include "x32assignbank.h"
 
 using enum MP_ID;
+using namespace OMC;
 
-class X32Config
+class Config
 {
-    private:
+    protected:
 
         Helper* helper;
 
-        // Mixerparameter
-
-        Mixerparameter* mpm[(uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE];
+        Parameter<MP_ID, MP_CAT>* mpm[(uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE]; 
+        
         map<MP_ID, set<uint>>* mp_changedlist = new map<MP_ID, set<uint>>();
         bool MixerParameterChangelistFreeze = false;
         map<MP_ID, set<uint>>* mp_changedlist_temp = new map<MP_ID, set<uint>>();
         
         void SetParameterChanged(MP_ID mp, uint index);
 
-        // Surfaceelements
-        SurfaceElement* sem[(uint)SurfaceElementId::__ELEMENT_COUNTER_DO_NOT_MOVE];
-
-        // surface binding
-        map<SurfaceElementId, SurfaceBindingParameter*>* surface_binding;
-        set<SurfaceElementId> surface_binding_changed;
-
-        OMCAssignBank* assingBanks[(uint)X32AssignBankId::__ELEMENT_COUNTER_DO_NOT_MOVE];
-
-
         // old
         OMC_MODEL _model;
 
     public:
 
-        X32Config(String model, Helper* h);
-
-        bool LoadConfig(uint scene);
-        void Save(uint scene);
+        Config(String model, Helper* h);
 
         void DefineMixerparameters();
         Mixerparameter* DefParameter(MP_ID mp_type, MP_CAT category, String name, uint count = 1);
@@ -64,7 +52,6 @@ class X32Config
         vector<uint> GetChangedParameterIndexes(vector<MP_ID> filter_ids);
         bool HasParameterChanged(MP_ID parameter_id);
         bool HasParameterChanged(MP_ID parameter_id, uint index);
-        bool HasBoundParameterChanged(SurfaceElementId id);
         bool HasParametersChanged(vector<MP_ID> parameter_id);
         bool HasParametersChanged(vector<MP_ID> parameter_id, uint index);
         bool HasParametersChanged(MP_CAT parameter_cat);
@@ -94,30 +81,6 @@ class X32Config
         MP_ID ParameterDependsOn(SurfaceBindingParameter* binding_parameter);
         MP_ID ParameterDependsOn(MixerparameterAction mp_action);
 
-        void DefineSurfaceElements();
-        SurfaceElement* DefSurfaceElements(SurfaceElementId element_id, String name);
-
-        SurfaceElementId CalcSurfaceElementId(SurfaceElementId id, int amount);
-
-        bool HasSurfaceElement(SurfaceElementId id);
-        SurfaceElement* GetSurfaceElement(SurfaceElementId);
-        SurfaceElement* GetSurfaceElementButton_XM32(OMC_BOARD board, uint16_t value);
-        SurfaceElement* GetSurfaceElementButton_Wing(OMC_BOARD board, uint index);
-        SurfaceElement* GetSurfaceElementEncoder(OMC_BOARD board, uint8_t index);
-        SurfaceElement* GetSurfaceElementFader(OMC_BOARD board, uint8_t index);
-        
-        map<SurfaceElementId, SurfaceBindingParameter*>* GetSurfaceBinding();
-        SurfaceBindingParameter* GetSurfaceBinding(SurfaceElementId elementId);
-        void SurfaceBindParameter(SurfaceElementId surfaceelement_id, SurfaceBindingParameter* binding_parameter);
-        void SurfaceBind(SurfaceElementId surfaceelement_id, MixerparameterAction action, MP_ID mixerparaemter_id, uint mixerparameter_index = 0, uint extra_value = 0);
-        // void SurfaceBind(SurfaceElementId surfaceelement_id, X32Action action);
-        void SurfaceUnbind(SurfaceElementId surfaceelement_id);
-        void SurfaceBindCustom(SurfaceElementId surfaceelement_id, String labeltext = "");
-
-        bool HasAnySurfaceBindingChanged();
-        bool HasSurfaceBindingChanged(SurfaceElementId elementId);
-        void RemoveSurfaceBindingChanged(SurfaceElementId elementId);
-
         bool IsModelX32Full();
         bool IsModelX32FullOrM32();
         bool IsModelX32FullOrCompactOrM32();
@@ -143,9 +106,6 @@ class X32Config
         bool HasBigDisplay();
         bool HasSmallDisplay();
         bool HasTouchDisplay();
-
-        void InitAssignBanks();
-        OMCAssignBank* GetAssignBank(X32AssignBankId id);
 };
 
 class X32ConfigFileEntry

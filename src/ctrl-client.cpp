@@ -204,7 +204,7 @@ void CtrlClient::guiInit()
 	#ifdef BUILD_DEBUG
 	printf("config->Refresh(ACTIVE_PAGE)\n");
 	#endif
-	config->Refresh(ACTIVE_PAGE);
+	clientconfig->Refresh(ACTIVE_PAGE);
 
 	// sync the Surface
 	#ifdef BUILD_DEBUG

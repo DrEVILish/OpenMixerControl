@@ -802,37 +802,11 @@ class Mixerparameter
 };
 
 
-template <>
-    struct glz::meta<Mixerparameter> {
-        using T = Mixerparameter;
-        static constexpr auto value = glz::object(
+template <> struct glz::meta<Mixerparameter>
+{
+    using T = Mixerparameter;
+    static constexpr auto value = glz::object(
             &T::parameter_id,
             &T::value //,            &T::value_string
         );
-    };
-
-namespace glz
-{
-   template <>
-   struct from<JSON, String>
-   {
-      template <auto Opts>
-      static void op(String& value, is_context auto&& ctx, auto&& it, auto&& end)
-      {
-        std::string str;
-        parse<JSON>::op<Opts>(str, ctx, it, end);
-
-        value = str.c_str();
-      }
-   };
-
-   template <>
-   struct to<JSON, String>
-   {
-      template <auto Opts>
-      static void op(String& value, is_context auto&& ctx, auto&& b, auto&& ix) noexcept
-      {
-        serialize<JSON>::op<Opts>(value.c_str(), ctx, b, ix);
-      }
-   };
-}
+};

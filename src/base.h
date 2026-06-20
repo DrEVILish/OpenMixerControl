@@ -5,12 +5,11 @@
 #include "helper.h"
 #include "base-parameter.h"
 
-// The string class
 class X32Base
 {
     protected:
         CLI::App* app;
-        X32Config* config;
+        ServerConfig* config;
         State* state;
         Helper* helper;
 

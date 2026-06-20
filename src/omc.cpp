@@ -24,7 +24,7 @@
 
 #include "omc.h"
 
-OMC::OMC(X32BaseParameter* basepar)
+OpenMixerControl::OpenMixerControl(X32BaseParameter* basepar)
 {
     if (!runAsClient)
     {
@@ -33,7 +33,7 @@ OMC::OMC(X32BaseParameter* basepar)
     client = new CtrlClient(basepar);
 }
 
-void OMC::Init()
+void OpenMixerControl::Init()
 {
     if (server) server->Init();
     client->Init();
@@ -41,24 +41,24 @@ void OMC::Init()
     
 }
 
-void OMC::Tick10ms(void)
+void OpenMixerControl::Tick10ms(void)
 {
     if (server) server->Tick10ms();
     client->Tick10ms();
 }
 
-void OMC::Tick50ms(void)
+void OpenMixerControl::Tick50ms(void)
 {
     client->Tick50ms();
 }
 
-void OMC::Tick100ms(void)
+void OpenMixerControl::Tick100ms(void)
 {
     if (server) server->Tick100ms();
     client->Tick100ms();
 }
 
-void OMC::SimulatorButton()
+void OpenMixerControl::SimulatorButton()
 {
     client->SimulatorButton();
 }
