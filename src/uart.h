@@ -18,10 +18,11 @@ class Uart : public X32Base
     
     private:
         int fd = -1; // default: not connected
+        bool force = false; // talk to the port even in bodyless mode
 
     public:
         Uart(X32BaseParameter* basepar);
-        int Open(const char* ttydev, uint32_t baudrate, bool raw);
+        int Open(const char* ttydev, uint32_t baudrate, bool raw, bool force = false);
         int Tx(MessageBase* message);
         int Rx(char* buf, uint16_t bufLen);
         //void MirrorBack();

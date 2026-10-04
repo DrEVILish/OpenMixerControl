@@ -31,9 +31,11 @@ Uart::Uart(X32BaseParameter* basepar): X32Base(basepar) {}
 
 
 
-int Uart::Open(const char* ttydev, uint32_t baudrate, bool raw) {
+int Uart::Open(const char* ttydev, uint32_t baudrate, bool raw, bool force) {
     
-    if (state->bodyless && !state->bodyless_with_surface_and_adda)
+    this->force = force;
+
+    if (state->bodyless && !state->bodyless_with_surface_and_adda && !force)
     {
         return 0;
     }
@@ -153,7 +155,7 @@ int Uart::Tx(MessageBase* message)
 	}
 
     // only write in bodyless mode when surface and adda are connected
-    if (state->bodyless && !state->bodyless_with_surface_and_adda)
+    if (state->bodyless && !state->bodyless_with_surface_and_adda && !force)
     {
         return 0;
     }

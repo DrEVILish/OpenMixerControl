@@ -397,6 +397,17 @@ int main(int argc, char* argv[])
 		->group(catDebugSurface)
 		->expected(0,1);
 	
+	app->add_option("--model", "Override the detected console model, e.g. X32, X32C, M32, WINGC. Useful in bodyless mode with an external surface")
+		->option_text("MODEL")
+		->configurable(false)
+		->check(CLI::IsMember(std::vector<std::string>{"X32CORE", "X32RACK", "X32P", "X32C", "X32", "M32", "M32R", "WINGR", "WINGC", "WING"}))
+		->group(catDebugSurface);
+
+	app->add_option("--surface-tty", "Serial port of an X/M32 surface, opened even in bodyless mode. Point it at a socat pty to use a network surface such as prosurfaced on a Midas PRO")
+		->option_text("PATH")
+		->configurable(false)
+		->group(catDebugSurface);
+
 	app->get_config_formatter_base()->quoteCharacter('"', '"');
 
 	CLI11_PARSE(*app, argc, argv);
@@ -467,6 +478,12 @@ int main(int argc, char* argv[])
 	else if (state->raspi)
 	{
 		model_str = "X32RACK";
+	}
+
+	if (app->count("--model") > 0)
+	{
+		model_str = String(app->get_option("--model")->as<string>().c_str());
+		helper->Log("Model overridden on the command line: %s\n", model_str.c_str());
 	}
 
 	X32Config* config = new X32Config(model_str, helper);
