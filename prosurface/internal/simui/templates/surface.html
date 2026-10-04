@@ -1,0 +1,98 @@
+{{define "page"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRO surface simulator</title>
+<script src="/static/htmx.min.js"></script>
+<script src="/static/hx-sse.min.js"></script>
+<style>
+:root { --desk:#26282b; --panel:#1b1c1e; --edge:#3a3d41; --ink:#d8d8d8; --quiet:#8a8d91; --led:#ff3b2f; --sel:#ffd23f; --solo:#ffb000; --mute:#ff3b2f; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--desk); color:var(--ink); font:13px/1.3 system-ui, sans-serif; }
+header { display:flex; gap:24px; align-items:baseline; padding:12px 16px; border-bottom:1px solid var(--edge); }
+header h1 { font-size:16px; margin:0; }
+.status { color:var(--quiet); }
+.status b { color:var(--ink); font-weight:600; }
+.ok { color:#5fd35f; } .down { color:#ff6b5f; }
+main { padding:16px; overflow-x:auto; }
+.row { display:flex; gap:16px; align-items:flex-start; margin-bottom:16px; }
+.panel { background:var(--panel); border:1px solid var(--edge); border-radius:8px; padding:8px 10px; }
+.panel h2 { margin:0 0 8px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--quiet); }
+.strips { display:flex; gap:6px; }
+.strip { display:flex; flex-direction:column; align-items:center; gap:6px; width:58px; }
+.fadercol { display:flex; gap:4px; align-items:flex-end; height:190px; }
+.grid { display:grid; grid-template-columns:repeat(4, auto); gap:6px; }
+.rot { display:flex; flex-direction:column; align-items:center; gap:4px; width:84px; }
+.turn { display:flex; flex-direction:column; gap:4px; align-items:center; }
+.knobs { display:flex; gap:8px; }
+.btn, .lcd, .knob { user-select:none; cursor:pointer; }
+.btn { display:inline-block; min-width:48px; padding:5px 6px; border-radius:4px; border:1px solid var(--edge); background:#2f3235; color:var(--quiet); text-align:center; font-size:11px; }
+.btn.on { color:#111; background:var(--led); border-color:var(--led); box-shadow:0 0 6px var(--led); }
+.btn.solo.on { background:var(--solo); border-color:var(--solo); box-shadow:0 0 6px var(--solo); }
+.btn.sel.on { background:var(--sel); border-color:var(--sel); box-shadow:0 0 6px var(--sel); }
+.prov { border-style:dashed; }
+.lcd { display:flex; flex-direction:column; justify-content:center; width:56px; height:40px; border-radius:4px; border:2px solid var(--edge); font:600 10px/1.2 ui-monospace, monospace; text-align:center; overflow:hidden; white-space:nowrap; }
+.lcd.on { border-color:var(--sel); box-shadow:0 0 6px var(--sel); }
+.fader { writing-mode:vertical-lr; direction:rtl; height:180px; width:28px; accent-color:#cfcfcf; }
+.fader.touched { accent-color:#5fb0ff; }
+.meter { display:flex; flex-direction:column; gap:2px; height:120px; justify-content:flex-end; }
+.meter i { display:block; width:6px; height:14px; border-radius:1px; background:#333; }
+.meter i.g { background:#2fbf4a; } .meter i.y { background:#ffd23f; } .meter i.r { background:#ff3b2f; }
+.ring { display:flex; gap:2px; }
+.ring i { display:block; width:4px; height:10px; border-radius:2px; background:#3a3d41; }
+.ring i.on { background:#ffb000; box-shadow:0 0 3px #ffb000; }
+.knob { width:22px; height:22px; border-radius:50%; border:1px solid var(--edge); background:#2f3235; color:var(--ink); padding:0; }
+.label { font-size:10px; color:var(--quiet); }
+footer { padding:0 16px 16px; color:var(--quiet); font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Midas {{.Surface.Model}} surface simulator</h1>
+  {{template "status" .Status}}
+</header>
+<div hx-sse:connect="/events" hx-swap="none" hidden></div>
+<main>
+  <div class="row">
+    <section class="panel"><h2>Assignable rotaries</h2>
+      <div class="strips">{{range strips "rotaries"}}<div class="rot">{{template "w" (control .)}}{{template "w" (control (printf "%s.BTN" .))}}</div>{{end}}</div>
+    </section>
+    <section class="panel"><h2>Navigation</h2><div class="grid">{{range section "navigation"}}{{template "w" .}}{{end}}</div></section>
+    <section class="panel"><h2>Scenes</h2><div class="grid">{{range section "scenes"}}{{template "w" .}}{{end}}</div></section>
+    <section class="panel"><h2>Mute groups</h2><div class="grid">{{range section "mute-groups"}}{{template "w" .}}{{end}}</div></section>
+  </div>
+  <div class="row">
+    <section class="panel"><h2>Inputs</h2>{{template "strips" "inputs"}}</section>
+    <section class="panel"><h2>VCA</h2>{{template "strips" "vca"}}</section>
+    <section class="panel"><h2>Masters</h2>{{template "strips" "masters"}}</section>
+  </div>
+</main>
+<footer>Dashed controls are guesses until checked on a real desk. Faders take touch from the pointer, so OMC does not fight your drag.</footer>
+</body>
+</html>{{end}}
+
+{{define "status"}}<div id="status" class="status" hx-get="/status" hx-trigger="every 2s" hx-swap="outerHTML">
+OMC: {{if .OMCConnected}}<b class="ok">connected</b> {{.OMCAddr}}{{else}}<b class="down">waiting</b> on {{.OMCAddr}}{{end}}
+ &middot; input page <b>{{.Page}}</b> of {{.Pages}}</div>{{end}}
+
+{{define "strips"}}<div class="strips">{{range strips .}}<div class="strip">
+  {{template "w" (control (printf "%s.SEL" .))}}
+  {{template "w" (control (printf "%s.SOLO" .))}}
+  {{template "w" (control (printf "%s.MUTE" .))}}
+  <div class="fadercol">{{with control (printf "%s.METER" .)}}{{if .ID}}{{template "w" .}}{{end}}{{end}}{{template "w" (control (printf "%s.FADER" .))}}</div>
+</div>{{end}}</div>{{end}}
+
+{{/* "w" wraps a control with its input triggers; only the inner "ctl" part is replaced by updates. */}}
+{{define "w"}}{{if eq .Kind.String "button" "lcd-button"}}<div hx-post="/ev/{{.ID}}/press" hx-trigger="pointerdown" hx-swap="none"><div hx-post="/ev/{{.ID}}/release" hx-trigger="pointerup, pointercancel" hx-swap="none">{{template "ctl" .}}</div></div>
+{{- else if eq .Kind.String "fader"}}<div hx-post="/ev/{{.ID}}/touch" hx-trigger="pointerdown" hx-swap="none"><div hx-post="/ev/{{.ID}}/untouch" hx-trigger="pointerup, pointercancel" hx-swap="none">{{template "ctl" .}}</div></div>
+{{- else if eq .Kind.String "rotary"}}<div class="turn">{{template "ctl" .}}<div class="knobs"><button class="knob" hx-post="/ev/{{.ID}}/turn" hx-vals='{"d":-1}' hx-swap="none" title="{{.Label}} left">&minus;</button><button class="knob" hx-post="/ev/{{.ID}}/turn" hx-vals='{"d":1}' hx-swap="none" title="{{.Label}} right">+</button></div></div><span class="label">{{.Label}}</span>
+{{- else}}{{template "ctl" .}}{{end}}{{end}}
+
+{{define "ctl"}}{{$c := .}}{{$s := state .ID}}
+{{- if eq $c.Kind.String "button"}}<span id="{{domid $c.ID}}" class="btn{{if eq $c.Label "Solo"}} solo{{end}}{{if $s.LED}} on{{end}}{{if $c.Provisional}} prov{{end}}">{{$c.Label}}</span>
+{{- else if eq $c.Kind.String "lcd-button"}}<span id="{{domid $c.ID}}" class="lcd{{if $s.LED}} on{{end}}" style="background:{{color $s.LCD.Color}};color:{{ink $s.LCD.Color}}" title="{{$c.Label}}">{{if $s.LCD.Lines}}{{range $s.LCD.Lines}}<span>{{.}}</span>{{end}}{{else}}<span>{{$c.Label}}</span>{{end}}</span>
+{{- else if eq $c.Kind.String "fader"}}<input id="{{domid $c.ID}}" class="fader{{if $s.Touched}} touched{{end}}" type="range" min="0" max="4095" name="v" value="{{$s.Fader}}" aria-label="{{$c.Label}} fader" hx-post="/ev/{{$c.ID}}/move" hx-trigger="input throttle:30ms" hx-swap="none">
+{{- else if eq $c.Kind.String "meter"}}<div id="{{domid $c.ID}}" class="meter" title="meter">{{if bit8 $s.Meter 5}}<i class="r"></i>{{else}}<i></i>{{end}}{{range rseq 5}}{{if bit8 $s.Meter .}}<i class="{{if ge . 4}}y{{else}}g{{end}}"></i>{{else}}<i></i>{{end}}{{end}}</div>
+{{- else if eq $c.Kind.String "rotary"}}<div id="{{domid $c.ID}}" class="ring">{{range seq 13}}<i{{if bit $s.Ring .}} class="on"{{end}}></i>{{end}}</div>
+{{- end}}{{end}}

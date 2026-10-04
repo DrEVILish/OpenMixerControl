@@ -4,7 +4,14 @@ SurfaceControllerXM32::SurfaceControllerXM32(X32BaseParameter* basepar) : Surfac
 {
     uart = new Uart(basepar);
 
-    if (state->bodyless)
+    if (app->count("--surface-tty") > 0)
+    {
+        // e.g. a pty bridged by socat to a network surface such as prosurfaced on a Midas PRO
+        string surfaceTty = app->get_option("--surface-tty")->as<string>();
+        helper->Log("Using surface port %s\n", surfaceTty.c_str());
+        uart->Open(surfaceTty.c_str(), 115200, true, true);
+    }
+    else if (state->bodyless)
     {
         /* 
         

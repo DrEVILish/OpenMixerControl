@@ -1,0 +1,25 @@
+name: prosurface (Go)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: [ "prosurface/**", "src/x32config.cpp", ".github/workflows/prosurface-go.yml" ]
+  pull_request:
+    branches: [ "main" ]
+    paths: [ "prosurface/**", "src/x32config.cpp", ".github/workflows/prosurface-go.yml" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: prosurface
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: prosurface/go.mod
+    - run: go vet ./...
+    - run: go test -race ./...
+    - name: X32 element table matches src/x32config.cpp
+      run: go generate ./... && git diff --exit-code

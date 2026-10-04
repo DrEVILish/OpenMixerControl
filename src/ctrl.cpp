@@ -654,8 +654,10 @@ void X32Ctrl::syncSurface(bool fullSync)
 
 			if (config->IsModelX32FullOrM32())
 			{
-				OMCBankId bank1;
-				OMCBankId bank2;
+				// fallback for bank IDs that only exist on smaller models, e.g. a
+				// config saved on an X32 Compact; uninitialised IDs crash LoadBank()
+				OMCBankId bank1 = OMCBankId::CH1_8;
+				OMCBankId bank2 = OMCBankId::CH9_16;
 
 				switch(bankToSwitchTo)
 				{
