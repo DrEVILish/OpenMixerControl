@@ -138,6 +138,10 @@ class X32Config
         bool IsModelWingCompact();
         bool IsModelWingRack();
         bool IsModelAnyWing();
+        bool IsModelPro1();
+        bool IsModelPro2C();
+        bool IsModelPro2();
+        bool IsModelAnyPro();
 
         bool HasDisplay();
         bool HasBigDisplay();

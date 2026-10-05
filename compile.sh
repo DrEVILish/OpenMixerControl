@@ -2,7 +2,7 @@
 
 if [ $# -eq 0 ]; then
     echo "No arguments supplied!"
-    echo "Possible Arguments: $0 [TARGET_XM32, TARGET_WING, TARGET_PC_SDL2]"
+    echo "Possible Arguments: $0 [TARGET_XM32, TARGET_WING, TARGET_PRO, TARGET_PC_SDL2]"
     exit
 fi
 BUILD_TARGET=$1

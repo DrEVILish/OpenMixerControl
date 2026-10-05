@@ -25,7 +25,10 @@ enum class OMC_MODEL
     M32_C,
     WING_RACK,
     WING_COMPACT,
-    WING_FULL
+    WING_FULL,
+    PRO1,
+    PRO2C,
+    PRO2
 };
 
 enum class X32_PAGE :int

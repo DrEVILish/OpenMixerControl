@@ -46,6 +46,18 @@ X32Config::X32Config(String model, Helper* h)
     {
         _model =  OMC_MODEL::WING_FULL;
     }
+    else if (model == "PRO1" )
+    {
+        _model =  OMC_MODEL::PRO1;
+    }
+    else if (model == "PRO2C" )
+    {
+        _model =  OMC_MODEL::PRO2C;
+    }
+    else if (model == "PRO2" )
+    {
+        _model =  OMC_MODEL::PRO2;
+    }
     else
     {
         //x32log("ERROR: No model detected!\n");
@@ -117,10 +129,22 @@ bool X32Config::IsModelWingRack() {
 bool X32Config::IsModelAnyWing() {
     return IsModelWingFull() || IsModelWingCompact() || IsModelWingRack();
 }
+bool X32Config::IsModelPro1() {
+    return (_model == OMC_MODEL::PRO1);
+}
+bool X32Config::IsModelPro2C() {
+    return (_model == OMC_MODEL::PRO2C);
+}
+bool X32Config::IsModelPro2() {
+    return (_model == OMC_MODEL::PRO2);
+}
+bool X32Config::IsModelAnyPro() {
+    return IsModelPro1() || IsModelPro2C() || IsModelPro2();
+}
 
 bool X32Config::HasDisplay()
 {
-    return IsModelX32Full() || IsModelX32Compact() || IsModelX32Producer() || IsModelX32Rack() || IsModelM32() || IsModelM32R() || IsModelAnyWing();
+    return IsModelX32Full() || IsModelX32Compact() || IsModelX32Producer() || IsModelX32Rack() || IsModelM32() || IsModelM32R() || IsModelAnyWing() || IsModelAnyPro();
 }
 
 bool X32Config::HasBigDisplay()
@@ -135,7 +159,7 @@ bool X32Config::HasSmallDisplay()
 
 bool X32Config::HasTouchDisplay()
 {
-    return IsModelAnyWing();
+    return IsModelAnyWing() || IsModelAnyPro();
 }
 
 //#####################################################################################################################

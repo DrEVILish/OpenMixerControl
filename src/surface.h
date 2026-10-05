@@ -14,6 +14,7 @@
 #include "surface-fader.h"
 #include "surface-controller-xm32.h"
 #include "surface-controller-wing.h"
+#include "surface-controller-pro.h"
 #include "helper.h"
 
 using namespace std;

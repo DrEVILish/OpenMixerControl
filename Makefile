@@ -39,6 +39,23 @@ ifeq "$(BUILD_TARGET)" "TARGET_WING"
 
 endif
 
+ifeq "$(BUILD_TARGET)" "TARGET_PRO"
+
+	DEBUG           = 0
+	COPTS           = 
+	CC              = gcc
+	CXX             = g++
+	AR              = ar
+	LD              = ld
+	BUILD_DIR       = $(ROOT_DIR)/build/pro
+	DEPFLAGS        += -D=TARGET_PRO -D_GNU_SOURCE
+	FLTO            = 
+	C_STD           = -std=c11
+	LVGL_CONF       = files/lv_conf_PRO.h
+	LDFLAGS_EXTRA	= 
+
+endif
+
 ifeq "$(BUILD_TARGET)" "TARGET_PC_SDL2"
 
 	DEBUG           = 1

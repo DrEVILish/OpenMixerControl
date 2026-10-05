@@ -31,6 +31,10 @@ Surface::Surface(X32BaseParameter* basepar): X32Base(basepar)
     {      
         surfaceController = new SurfaceControllerWing(basepar);
     }
+    else if (config->IsModelAnyPro())
+    {
+        surfaceController = new SurfaceControllerPro(basepar);
+    }
     else
     {
         surfaceController = new SurfaceControllerXM32(basepar);

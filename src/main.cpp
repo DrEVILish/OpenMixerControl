@@ -78,6 +78,28 @@ static lv_indev_t *mouse_wheel;
 static lv_indev_t *keyboard;
 #endif
 
+#ifdef TARGET_PRO
+// touch panel and trackball, found by LVGL's evdev discovery
+static void evdevDiscovered(lv_indev_t* indev, lv_evdev_type_t type, void* user_data)
+{
+	lv_indev_set_display(indev, display);
+
+	if (type == LV_EVDEV_TYPE_REL)
+	{
+		// the trackball moves a pointer, so it needs a visible cursor
+		lv_obj_t* cursor = lv_obj_create(lv_layer_sys());
+		lv_obj_remove_style_all(cursor);
+		lv_obj_set_size(cursor, 12, 12);
+		lv_obj_set_style_radius(cursor, LV_RADIUS_CIRCLE, 0);
+		lv_obj_set_style_bg_color(cursor, lv_color_white(), 0);
+		lv_obj_set_style_bg_opa(cursor, LV_OPA_COVER, 0);
+		lv_obj_set_style_border_color(cursor, lv_color_black(), 0);
+		lv_obj_set_style_border_width(cursor, 1, 0);
+		lv_indev_set_cursor(indev, cursor);
+	}
+}
+#endif
+
 timer_t timerid_10ms;
 struct sigevent sev_10ms;
 struct itimerspec trigger_10ms;
@@ -180,6 +202,10 @@ void guiInit(X32Config* config)
 		}
 
 		lv_linux_fbdev_set_file(display, device);	
+
+		#ifdef TARGET_PRO
+		lv_evdev_discovery_start(evdevDiscovered, NULL);
+		#endif
 
 	#endif
 
@@ -397,13 +423,13 @@ int main(int argc, char* argv[])
 		->group(catDebugSurface)
 		->expected(0,1);
 	
-	app->add_option("--model", "Override the detected console model, e.g. X32, X32C, M32, WINGC. Useful in bodyless mode with an external surface")
+	app->add_option("--model", "Override the detected console model, e.g. X32, X32C, M32, WINGC, PRO1. Useful in bodyless mode")
 		->option_text("MODEL")
 		->configurable(false)
-		->check(CLI::IsMember(std::vector<std::string>{"X32CORE", "X32RACK", "X32P", "X32C", "X32", "M32", "M32R", "WINGR", "WINGC", "WING"}))
+		->check(CLI::IsMember(std::vector<std::string>{"X32CORE", "X32RACK", "X32P", "X32C", "X32", "M32", "M32R", "WINGR", "WINGC", "WING", "PRO1", "PRO2C", "PRO2"}))
 		->group(catDebugSurface);
 
-	app->add_option("--surface-tty", "Serial port of an X/M32 surface, opened even in bodyless mode. Point it at a socat pty to use a network surface such as prosurfaced on a Midas PRO")
+	app->add_option("--surface-tty", "Serial port of an X/M32 surface, opened even in bodyless mode, e.g. a socat pty bridged to a surface on the network")
 		->option_text("PATH")
 		->configurable(false)
 		->group(catDebugSurface);
@@ -466,6 +492,18 @@ int main(int argc, char* argv[])
 	// helper->ReadConfig("/etc/wing.conf", "SN=", serial, 15);
 	// helper->ReadConfig("/etc/wing.conf", "DATE=", date, 16);
 	// helper->ReadConfig("/etc/wing.conf", "CFG", cfg, 5);
+
+	#elifdef TARGET_PRO
+
+	// written by the OpenProSeries image; without it, asume a PRO1
+	if (helper->ReadConfig("/etc/pro.conf", "MDL=", model, 12) != 0)
+	{
+		strcpy(model, "PRO1");
+	}
+	helper->ReadConfig("/etc/pro.conf", "SN=", serial, 15);
+	helper->ReadConfig("/etc/pro.conf", "DATE=", date, 16);
+
+	helper->Log("Detected model: %s with Serial %s built on %s\n", model, serial, date);
 
 	#endif
 
