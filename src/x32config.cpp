@@ -142,6 +142,18 @@ bool X32Config::IsModelAnyPro() {
     return IsModelPro1() || IsModelPro2C() || IsModelPro2();
 }
 
+// Surface layouts: an input section of 8 or 16 strips plus a bus section of 8
+// strips, banked the X32 way. The PRO surfaces use the same banking.
+bool X32Config::HasXM32StyleSurface() {
+    return IsModelX32FullOrCompactOrProducerOrM32OrM32R() || IsModelAnyPro();
+}
+bool X32Config::HasSurface16InputStrips() {
+    return IsModelX32FullOrM32() || IsModelPro2();
+}
+bool X32Config::HasSurface8InputStrips() {
+    return IsModelX32CompactOrProducerOrM32R() || IsModelPro1() || IsModelPro2C();
+}
+
 bool X32Config::HasDisplay()
 {
     return IsModelX32Full() || IsModelX32Compact() || IsModelX32Producer() || IsModelX32Rack() || IsModelM32() || IsModelM32R() || IsModelAnyWing() || IsModelAnyPro();
@@ -2065,6 +2077,61 @@ void X32Config::DefineSurfaceElements()
         DefSurfaceElements((SurfaceElementId)(((int)WING_FADER_1)+i), String("FADER ") + indexString);
     }
 
+    //########################################
+    //
+    //  ########  ########   #######
+    //  ##     ## ##     ## ##     ##
+    //  ##     ## ##     ## ##     ##
+    //  ########  ########  ##     ##
+    //  ##        ##   ##   ##     ##
+    //  ##        ##    ##  ##     ##
+    //  ##        ##     ##  #######
+    //
+    //########################################
+
+    DefSurfaceElements(PRO_INPUT_BANK_LEFT, "INPUT BANK <");
+    DefSurfaceElements(PRO_INPUT_BANK_RIGHT, "INPUT BANK >");
+    DefSurfaceElements(PRO_INPUT2_BANK_LEFT, "INPUT 2 BANK <");
+    DefSurfaceElements(PRO_INPUT2_BANK_RIGHT, "INPUT 2 BANK >");
+    DefSurfaceElements(PRO_OUTPUT_BANK_LEFT, "OUTPUT BANK <");
+    DefSurfaceElements(PRO_OUTPUT_BANK_RIGHT, "OUTPUT BANK >");
+
+    for (uint i = 0; i < 8; i++)
+    {
+        String indexString = String(i+1);
+        DefSurfaceElements((SurfaceElementId)(((int)PRO_ENCODER_1)+i), String("ENCODER ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)PRO_ENCODER_BUTTON_1)+i), String("ENCODER BUTTON ") + indexString);
+    }
+    for (uint i = 0; i < 4; i++)
+    {
+        DefSurfaceElements((SurfaceElementId)(((int)PRO_ENCODER_KEY_1)+i), String("ENCODER KEY ") + String(i+1));
+    }
+
+    DefSurfaceElements(PRO_MIX_VCA, "VCA");
+    DefSurfaceElements(PRO_MIX_AUX_1, "AUX 1");
+    DefSurfaceElements(PRO_MIX_AUX_2, "AUX 2");
+    DefSurfaceElements(PRO_MIX_MTX, "MTX");
+    DefSurfaceElements(PRO_MIX_MAST, "MAST");
+    DefSurfaceElements(PRO_MIX_GEQ, "GEQ");
+
+    for (uint i = 0; i < 6; i++)
+    {
+        String indexString = String(i+1);
+        DefSurfaceElements((SurfaceElementId)(((int)PRO_POP_1)+i), String("POP ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)PRO_SCREEN_1)+i), String("SCREEN ") + indexString);
+    }
+
+    DefSurfaceElements(PRO_AUTO_LAST, "LAST");
+    DefSurfaceElements(PRO_AUTO_NOW, "NOW");
+    DefSurfaceElements(PRO_AUTO_NEXT, "NEXT");
+    DefSurfaceElements(PRO_AUTO_STORE, "STORE");
+    DefSurfaceElements(PRO_AUTO_OK, "OK");
+    DefSurfaceElements(PRO_AUTO_CANCEL, "CANCEL");
+
+    DefSurfaceElements(PRO_INPUT, "INPUT");
+    DefSurfaceElements(PRO_OUTPUT, "OUTPUT");
+    DefSurfaceElements(PRO_EXTEND, "EXTEND");
+
 
 
 //##############################################################################################################################
@@ -3014,6 +3081,95 @@ void X32Config::DefineSurfaceElements()
             GetSurfaceElement((SurfaceElementId)(((int)WING_MUTE_1)+i))      ->DefButton(OMC_BOARD_WING, 0x02 + (0x03 * i));
             GetSurfaceElement((SurfaceElementId)(((int)WING_FADER_1)+i))     ->DefFader(OMC_BOARD_WING, i);
         }
+    }
+
+    //########################################
+    //
+    //  PRO1 / PRO2C / PRO2
+    //
+    //########################################
+
+    if (IsModelAnyPro())
+    {
+        /*
+        The board and index numbers here are OMC's own, not the PRO's: the
+        surface link is not decoded yet. SurfaceControllerPro translates
+        between these and the desk once it is. Per strip bay:
+
+            select 0x00+i, solo 0x08+i, mute 0x10+i, bank < 0x18, bank > 0x19,
+            LCD i, fader i
+
+        Strips map to the X32 sections, so the X32 banking works unchanged:
+        left bay = input section (BOARD_L), PRO2 second bay = input section 2
+        (BOARD_M), right bay = bus section (BOARD_R).
+        */
+
+        struct { OMC_BOARD board; SurfaceElementId select, solo, lcd, mute, fader, bank_left, bank_right; } bays[] = {
+            { OMC_BOARD_PRO_INPUT,  BOARD_L_SELECT_1, BOARD_L_SOLO_1, BOARD_L_LCD_1, BOARD_L_MUTE_1, BOARD_L_FADER_1, PRO_INPUT_BANK_LEFT,  PRO_INPUT_BANK_RIGHT },
+            { OMC_BOARD_PRO_INPUT2, BOARD_M_SELECT_1, BOARD_M_SOLO_1, BOARD_M_LCD_1, BOARD_M_MUTE_1, BOARD_M_FADER_1, PRO_INPUT2_BANK_LEFT, PRO_INPUT2_BANK_RIGHT },
+            { OMC_BOARD_PRO_OUTPUT, BOARD_R_SELECT_1, BOARD_R_SOLO_1, BOARD_R_LCD_1, BOARD_R_MUTE_1, BOARD_R_FADER_1, PRO_OUTPUT_BANK_LEFT, PRO_OUTPUT_BANK_RIGHT },
+        };
+
+        for (auto& bay : bays)
+        {
+            if (bay.board == OMC_BOARD_PRO_INPUT2 && !HasSurface16InputStrips())
+            {
+                continue;
+            }
+
+            for (uint i = 0; i < 8; i++)
+            {
+                GetSurfaceElement(CalcSurfaceElementId(bay.select, i))  ->DefButton(bay.board, 0x00 + i);
+                GetSurfaceElement(CalcSurfaceElementId(bay.solo, i))    ->DefButton(bay.board, 0x08 + i);
+                GetSurfaceElement(CalcSurfaceElementId(bay.mute, i))    ->DefButton(bay.board, 0x10 + i);
+                GetSurfaceElement(CalcSurfaceElementId(bay.lcd, i))     ->DefLcd(bay.board, i);
+                GetSurfaceElement(CalcSurfaceElementId(bay.fader, i))   ->DefFader(bay.board, i);
+            }
+            GetSurfaceElement(bay.bank_left)                            ->DefButton(bay.board, 0x18);
+            GetSurfaceElement(bay.bank_right)                           ->DefButton(bay.board, 0x19);
+        }
+
+        // Left bay: 8 encoders with a button each, and 4 keys
+        for (uint i = 0; i < 8; i++)
+        {
+            GetSurfaceElement(CalcSurfaceElementId(PRO_ENCODER_1, i))         ->DefEncoder(OMC_BOARD_PRO_INPUT, i);
+            GetSurfaceElement(CalcSurfaceElementId(PRO_ENCODER_BUTTON_1, i))  ->DefButton(OMC_BOARD_PRO_INPUT, 0x20 + i);
+        }
+        for (uint i = 0; i < 4; i++)
+        {
+            GetSurfaceElement(CalcSurfaceElementId(PRO_ENCODER_KEY_1, i))     ->DefButton(OMC_BOARD_PRO_INPUT, 0x28 + i);
+        }
+
+        // Right bay: mix bay, POP groups, automation
+        GetSurfaceElement(PRO_MIX_VCA)                              ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x20);
+        GetSurfaceElement(PRO_MIX_AUX_1)                            ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x21);
+        GetSurfaceElement(PRO_MIX_AUX_2)                            ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x22);
+        GetSurfaceElement(PRO_MIX_MTX)                              ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x23);
+        GetSurfaceElement(PRO_MIX_MAST)                             ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x24);
+        GetSurfaceElement(PRO_MIX_GEQ)                              ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x25);
+        for (uint i = 0; i < 6; i++)
+        {
+            GetSurfaceElement(CalcSurfaceElementId(PRO_POP_1, i))   ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x28 + i);
+        }
+        GetSurfaceElement(PRO_AUTO_LAST)                            ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x30);
+        GetSurfaceElement(PRO_AUTO_NOW)                             ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x31);
+        GetSurfaceElement(PRO_AUTO_NEXT)                            ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x32);
+        GetSurfaceElement(PRO_AUTO_STORE)                           ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x33);
+        GetSurfaceElement(PRO_AUTO_OK)                              ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x34);
+        GetSurfaceElement(PRO_AUTO_CANCEL)                          ->DefButton(OMC_BOARD_PRO_OUTPUT, 0x35);
+
+        // Centre: screen keys, INPUT/OUTPUT, EXTEND, arrow keys
+        for (uint i = 0; i < 6; i++)
+        {
+            GetSurfaceElement(CalcSurfaceElementId(PRO_SCREEN_1, i)) ->DefButton(OMC_BOARD_PRO_CENTRE, 0x00 + i);
+        }
+        GetSurfaceElement(PRO_INPUT)                                ->DefButton(OMC_BOARD_PRO_CENTRE, 0x06);
+        GetSurfaceElement(PRO_OUTPUT)                               ->DefButton(OMC_BOARD_PRO_CENTRE, 0x07);
+        GetSurfaceElement(PRO_EXTEND)                               ->DefButton(OMC_BOARD_PRO_CENTRE, 0x08);
+        GetSurfaceElement(UP)                                       ->DefButton(OMC_BOARD_PRO_CENTRE, 0x09);
+        GetSurfaceElement(DOWN)                                     ->DefButton(OMC_BOARD_PRO_CENTRE, 0x0A);
+        GetSurfaceElement(LEFT)                                     ->DefButton(OMC_BOARD_PRO_CENTRE, 0x0B);
+        GetSurfaceElement(RIGHT)                                    ->DefButton(OMC_BOARD_PRO_CENTRE, 0x0C);
     }
 }
 

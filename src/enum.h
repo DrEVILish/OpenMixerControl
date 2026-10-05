@@ -10,6 +10,12 @@ typedef enum
     X32_BOARD_R =       0x08,
     OMC_BOARD_WING =    0x10,
     OMC_BOARD_WING_PNLC =    0x11,
+    // Midas PRO1/PRO2C/PRO2: logical boards, until the surface link is decoded
+    OMC_BOARD_PRO_INPUT =    0x20, // left bay: 8 input strips, encoders
+    OMC_BOARD_PRO_INPUT2 =   0x21, // PRO2 only: second bay of 8 input strips
+    OMC_BOARD_PRO_OUTPUT =   0x22, // right bay: 8 output strips, mix bay, POP, automation
+    OMC_BOARD_PRO_CENTRE =   0x23, // screen keys, navigation (trackball is a USB/evdev device)
+    OMC_BOARD_PRO_UPPER =    0x24, // upper right section, not described yet
 } OMC_BOARD;
 
 enum class OMC_MODEL
@@ -993,6 +999,69 @@ enum class SurfaceElementId
     WING_FADER_22,
     WING_FADER_23,
     WING_FADER_24,
+
+    // Midas PRO1/PRO2C/PRO2
+    PRO_INPUT_BANK_LEFT,
+    PRO_INPUT_BANK_RIGHT,
+    PRO_INPUT2_BANK_LEFT,
+    PRO_INPUT2_BANK_RIGHT,
+    PRO_OUTPUT_BANK_LEFT,
+    PRO_OUTPUT_BANK_RIGHT,
+
+    PRO_ENCODER_1,
+    PRO_ENCODER_2,
+    PRO_ENCODER_3,
+    PRO_ENCODER_4,
+    PRO_ENCODER_5,
+    PRO_ENCODER_6,
+    PRO_ENCODER_7,
+    PRO_ENCODER_8,
+
+    PRO_ENCODER_BUTTON_1,
+    PRO_ENCODER_BUTTON_2,
+    PRO_ENCODER_BUTTON_3,
+    PRO_ENCODER_BUTTON_4,
+    PRO_ENCODER_BUTTON_5,
+    PRO_ENCODER_BUTTON_6,
+    PRO_ENCODER_BUTTON_7,
+    PRO_ENCODER_BUTTON_8,
+
+    PRO_ENCODER_KEY_1,
+    PRO_ENCODER_KEY_2,
+    PRO_ENCODER_KEY_3,
+    PRO_ENCODER_KEY_4,
+
+    PRO_MIX_VCA,
+    PRO_MIX_AUX_1,
+    PRO_MIX_AUX_2,
+    PRO_MIX_MTX,
+    PRO_MIX_MAST,
+    PRO_MIX_GEQ,
+
+    PRO_POP_1,
+    PRO_POP_2,
+    PRO_POP_3,
+    PRO_POP_4,
+    PRO_POP_5,
+    PRO_POP_6,
+
+    PRO_AUTO_LAST,
+    PRO_AUTO_NOW,
+    PRO_AUTO_NEXT,
+    PRO_AUTO_STORE,
+    PRO_AUTO_OK,
+    PRO_AUTO_CANCEL,
+
+    PRO_SCREEN_1,
+    PRO_SCREEN_2,
+    PRO_SCREEN_3,
+    PRO_SCREEN_4,
+    PRO_SCREEN_5,
+    PRO_SCREEN_6,
+
+    PRO_INPUT,
+    PRO_OUTPUT,
+    PRO_EXTEND,
 
     __ELEMENT_COUNTER_DO_NOT_MOVE
 };

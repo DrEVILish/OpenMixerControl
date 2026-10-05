@@ -637,7 +637,7 @@ void X32Ctrl::syncSurface(bool fullSync)
 		mixer->ClearSolo();
 	}
 
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+	if (config->HasXM32StyleSurface())
 	{
 		if (config->HasParameterChanged(BANKING_INPUT))
 		{
@@ -652,7 +652,7 @@ void X32Ctrl::syncSurface(bool fullSync)
 				}
 			}
 
-			if (config->IsModelX32FullOrM32())
+			if (config->HasSurface16InputStrips())
 			{
 				// fallback for bank IDs that only exist on smaller models, e.g. a
 				// config saved on an X32 Compact; uninitialised IDs crash LoadBank()
@@ -771,11 +771,11 @@ void X32Ctrl::syncSurface(bool fullSync)
 								nextSurfaceChannelStrip++;
 							}	
 							
-							if (config->IsModelX32FullOrM32() && nextSurfaceChannelStrip > 16)
+							if (config->HasSurface16InputStrips() && nextSurfaceChannelStrip > 16)
 							{
 								break;
 							}
-							if (config->IsModelX32CompactOrProducerOrM32R() && nextSurfaceChannelStrip > 8)
+							if (config->HasSurface8InputStrips() && nextSurfaceChannelStrip > 8)
 							{
 								break;
 							}
@@ -1691,7 +1691,7 @@ void X32Ctrl::UpdateMeters(void) {
 	//
 	// ########################################
 
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack())
+	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack() || config->IsModelAnyPro())
 	{
 		pages[(X32_PAGE)config->GetUint(ACTIVE_PAGE)]->UpdateMeters();
 	}
@@ -1771,6 +1771,31 @@ void X32Ctrl::UpdateMeters(void) {
 			if (binding_board_r)
 			{
 				surface->SetMeterLed(X32_BOARD_R, i, mixer->dsp->rChannel[binding_board_r->mp_index].meter6Info);
+			}
+		}
+	}
+	else if (config->IsModelAnyPro())
+	{
+		struct { SurfaceElementId vumeter; OMC_BOARD board; } bays[] = {
+			{ SurfaceElementId::BOARD_L_VUMETER_1, OMC_BOARD_PRO_INPUT },
+			{ SurfaceElementId::BOARD_M_VUMETER_1, OMC_BOARD_PRO_INPUT2 },
+			{ SurfaceElementId::BOARD_R_VUMETER_1, OMC_BOARD_PRO_OUTPUT },
+		};
+
+		for (auto& bay : bays)
+		{
+			if (bay.board == OMC_BOARD_PRO_INPUT2 && !config->HasSurface16InputStrips())
+			{
+				continue;
+			}
+
+			for (uint8_t i = 0; i < 8; i++)
+			{
+				SurfaceBindingParameter* binding = config->GetSurfaceBinding(config->CalcSurfaceElementId(bay.vumeter, i));
+				if (binding)
+				{
+					surface->SetMeterLed(bay.board, i, mixer->dsp->rChannel[binding->mp_index].meter6Info);
+				}
 			}
 		}
 	}
@@ -1943,12 +1968,12 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint1
 	else if (command == 'b') // Button
 	{
 		// find surfaceelement
-		SurfaceElement* button;
+		SurfaceElement* button = 0;
 		if(config->IsModelAnyXM32())
 		{
 			button = config->GetSurfaceElementButton_XM32(board, value);
 		}
-		else if (config->IsModelAnyWing())
+		else if (config->IsModelAnyWing() || config->IsModelAnyPro())
 		{
 			button = config->GetSurfaceElementButton_Wing(board, index);
 		}
@@ -1965,7 +1990,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint1
 		{
 			isButtonPressed = (value >> 7) == 1;
 		}
-		else if (config->IsModelAnyWing())
+		else if (config->IsModelAnyWing() || config->IsModelAnyPro())
 		{
 			isButtonPressed = (value==1);
 		}
@@ -2002,7 +2027,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint1
 
 			// Member Assign Mode (e.g. Mute Groups, DCA Groups)
 			bool memberAssingMode = 
-					config->IsModelX32FullOrCompactOrProducerOrM32OrM32R() 		&&
+					config->HasXM32StyleSurface() 		&&
 					config->GetBool(parameter->GetAssignMembersIf()) 	&&
 					config->GetUint(ACTIVE_PAGE) == (uint)X32_PAGE::CONFIG;
 
@@ -2019,7 +2044,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint1
 						config->SurfaceBind(config->CalcSurfaceElementId(SurfaceElementId::BOARD_L_SELECT_1, i),
 											MixerparameterAction::TOGGLE, parameter->GetAssignMembersTo(), chanIndex_L);
 
-						if (config->IsModelX32FullOrM32())
+						if (config->HasSurface16InputStrips())
 						{
 							// Board M / InputSection2
 							uint chanIndex_M = surface->GetLoadedBank(OMCBankTarget::InputSection2)->channelstrip[i]->select->mp_index;
@@ -2072,7 +2097,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint1
 
 									SurfaceBindingParameter* bindingParameterButtonOne = config->GetSurfaceBinding(buttonPressed->GetId());
 
-									if (config->IsModelX32CompactOrProducerOrM32R())
+									if (config->HasSurface8InputStrips())
 									{
 										// ######################################
 										// Banking input section into bus section
@@ -2083,7 +2108,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint1
 											config->Set(BANKING_BUS, value_to_set, parameter_index);
 										}
 									} 
-									else if (config->IsModelX32FullOrM32())
+									else if (config->HasSurface16InputStrips())
 									{
 										// TODO https://github.com/OpenMixerProject/OpenX32/issues/61
 

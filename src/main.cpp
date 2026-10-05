@@ -243,14 +243,14 @@ void guiInit(X32Config* config)
 	config->Refresh(SELECTED_CHANNEL);
 
 	// trigger load of banks
-	if (config->IsModelX32FullOrM32())
+	if (config->HasSurface16InputStrips())
 	{
 		#ifdef BUILD_DEBUG
 		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_16)\n");
 		#endif
 		config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_16);
 	}
-	else if (config->IsModelX32CompactOrProducerOrM32R())
+	else if (config->HasSurface8InputStrips())
 	{
 		#ifdef BUILD_DEBUG
 		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_8)\n");
@@ -265,7 +265,7 @@ void guiInit(X32Config* config)
 		config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
 	}
 	
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+	if (config->HasXM32StyleSurface())
 	{
 		#ifdef BUILD_DEBUG
 		printf("config->Refresh(BANKING_BUS)\n");

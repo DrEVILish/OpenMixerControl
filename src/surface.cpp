@@ -301,6 +301,78 @@ void Surface::LoadDefaultSurfaceBinding()
 		}
 	}
 
+	if (config->IsModelAnyPro())
+	{
+		// Default layout for the PRO surface. The strips are banked like an
+		// X32 (see InitBanks), the rest is bound here.
+
+		// Centre: the 6 screen keys open the main pages
+		config->SurfaceBind(SurfaceElementId::PRO_SCREEN_1, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::HOME));
+		config->SurfaceBind(SurfaceElementId::PRO_SCREEN_2, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::METERS));
+		config->SurfaceBind(SurfaceElementId::PRO_SCREEN_3, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::ROUTING));
+		config->SurfaceBind(SurfaceElementId::PRO_SCREEN_4, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SETUP));
+		config->SurfaceBind(SurfaceElementId::PRO_SCREEN_5, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::LIBRARY));
+		config->SurfaceBind(SurfaceElementId::PRO_SCREEN_6, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::EFFECTS));
+
+		config->SurfaceBind(SurfaceElementId::LEFT, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
+		config->SurfaceBind(SurfaceElementId::RIGHT, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
+		config->SurfaceBind(SurfaceElementId::UP, MixerparameterAction::TOGGLE, DISPLAY_UP);
+		config->SurfaceBind(SurfaceElementId::DOWN, MixerparameterAction::TOGGLE, DISPLAY_DOWN);
+
+		// Left bay: the 8 encoders work on the selected channel, the 4 keys pick the EQ band
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_1, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GAIN);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_2, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_LOWCUT_FREQ);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_3, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GATE_TRESHOLD);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_4, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_DYNAMICS_TRESHOLD);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_5, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_FREQ1, (uint)BANKING_EQ);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_6, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_GAIN1, (uint)BANKING_EQ);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_7, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_Q1, (uint)BANKING_EQ);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_8, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_PANORAMA);
+
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_BUTTON_1, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_PHANTOM);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_BUTTON_2, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_LOWCUT_ENABLE);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_BUTTON_3, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_GATE_ENABLE);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_BUTTON_4, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_COMPRESSOR_ENABLE);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_BUTTON_5, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_EQ_ENABLE);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_BUTTON_6, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_PHASE_INVERT);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_BUTTON_7, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_BUTTON_8, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SEND_LR);
+
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_KEY_1, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 0);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_KEY_2, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 1);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_KEY_3, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 2);
+		config->SurfaceBind(SurfaceElementId::PRO_ENCODER_KEY_4, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 3);
+
+		// Right bay: the mix bay picks what the output faders show
+		config->SurfaceBind(SurfaceElementId::PRO_MIX_VCA, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::DCA));
+		config->SurfaceBind(SurfaceElementId::PRO_MIX_AUX_1, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS1_8));
+		config->SurfaceBind(SurfaceElementId::PRO_MIX_AUX_2, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS9_16));
+		config->SurfaceBind(SurfaceElementId::PRO_MIX_MTX, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::MATRIX_MAIN));
+		config->SurfaceBind(SurfaceElementId::PRO_MIX_MAST, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+
+		// Right bay: the POP group keys pick what the input faders show
+		if (config->HasSurface16InputStrips())
+		{
+			config->SurfaceBind(SurfaceElementId::PRO_POP_1, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH1_16));
+			config->SurfaceBind(SurfaceElementId::PRO_POP_2, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH17_32));
+			config->SurfaceBind(SurfaceElementId::PRO_POP_3, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::AUX_USB_FX_RET));
+			config->SurfaceBind(SurfaceElementId::PRO_POP_4, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS1_16));
+			config->SurfaceBind(SurfaceElementId::PRO_POP_5, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::REMOTE1));
+		}
+		else
+		{
+			config->SurfaceBind(SurfaceElementId::PRO_POP_1, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH1_8));
+			config->SurfaceBind(SurfaceElementId::PRO_POP_2, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH9_16));
+			config->SurfaceBind(SurfaceElementId::PRO_POP_3, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH17_24));
+			config->SurfaceBind(SurfaceElementId::PRO_POP_4, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH25_32));
+			config->SurfaceBind(SurfaceElementId::PRO_POP_5, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::AUX_USB));
+			config->SurfaceBind(SurfaceElementId::PRO_POP_6, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::FX_RET));
+		}
+
+		// Automation: scenes
+		config->SurfaceBind(SurfaceElementId::PRO_AUTO_STORE, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SCENES));
+	}
+
 	if (config->IsModelAnyWing())
 	{
 		if (config->IsModelWingCompact())
@@ -356,7 +428,7 @@ void Surface::LoadMainFaderSurfaceBinding()
 
 void Surface::InitBanks()
 {
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+	if (config->HasXM32StyleSurface())
 	{
 		uint channel_strip_size = 8;
 

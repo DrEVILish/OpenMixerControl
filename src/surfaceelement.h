@@ -14,17 +14,18 @@ class SurfaceElement
         String _name;
         
         // Button-ID, LED-ID or Fader-Index
-        uint element_index;
+        uint element_index = 0;
 
-        uint encoder_backlight;
+        uint encoder_backlight = 0;
 
         bool no_led = false;
 
-        OMC_BOARD board_id;
+        OMC_BOARD board_id = X32_BOARD_EXTRA;
 
     public:
 
-        SurfaceElementType element_type;
+        // NONE until a model defines it, so the lookups by board and index skip it
+        SurfaceElementType element_type = SurfaceElementType::NONE;
 
 
         SurfaceElement(SurfaceElementId se, String name)

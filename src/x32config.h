@@ -142,6 +142,9 @@ class X32Config
         bool IsModelPro2C();
         bool IsModelPro2();
         bool IsModelAnyPro();
+        bool HasXM32StyleSurface();
+        bool HasSurface16InputStrips();
+        bool HasSurface8InputStrips();
 
         bool HasDisplay();
         bool HasBigDisplay();
