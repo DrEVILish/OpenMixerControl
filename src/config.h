@@ -178,17 +178,22 @@ namespace OMC
             void InitAssignBanks();
             OMCAssignBank* GetAssignBank(X32AssignBankId id);
 
-            // Channel I/O Insert & effective FPGA routing helpers
+            // Channel I/O Insert & effective FPGA/DSP routing helpers
             bool IsValidInsertSendOutput(uint fpgaOutputIdx);
             bool IsValidInsertReturnInput(uint fpgaInputIdx);
             bool IsFpgaInputHeadamp(uint fpgaInputIdx);
+            bool IsChannelInsertPreDsp(uint chanIndex);
+            bool IsChannelInsertInDsp(uint chanIndex);
             uint GetChannelLogicalFpgaInput(uint chanIndex);
             bool IsChannelInsertSendActive(uint chanIndex);
             bool IsChannelInsertActive(uint chanIndex);
-            float GetChannelInsertReturnTrimDb(uint chanIndex);
+            uint GetChannelInsertDspReturnBufIdx(uint chanIndex);
+            float GetChannelInsertReturnTrimDb(uint dspChanIndex);
             uint GetEffectiveFpgaRoutingSource(uint fpgaOutZeroBased);
+            void GetEffectiveDspOutputRouting(uint dspOutIndex, uint* sourceBufIdx, uint* tapPoint);
             int FindInsertSendOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel = -1);
             int FindActiveInsertDspInOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel = -1);
+            int FindInDspInsertTdmReturnOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel = -1);
             int FindInsertReturnOwnerChannel(uint fpgaInputIdx, int ignoreChannel = -1);
             String GetFpgaPatchInsertWarning(uint fpgaOutZeroBased, uint newSourceIdx);
             String GetChannelInsertConflictWarning(uint chanIndex, uint sendOutIdx, uint returnInIdx);

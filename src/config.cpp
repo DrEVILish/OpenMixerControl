@@ -718,6 +718,20 @@ namespace OMC
         ->DefMinMaxStandard_Uint(0, NUM_INPUT_CHANNEL, 0)
         ->DefOSC("ch_insert_return");
 
+        DefParameter(CHANNEL_INSERT_POINT, cat, "Insert Point", MAX_VCHANNELS)
+        ->DefNameShort("InsP")
+        ->DefUOM(MP_UOM::INSERT_POINT)
+        ->DefHideEncoderSlider()
+        ->DefMinMaxStandard_Uint(0, 3, (uint)INSERT_POINT::PRE_DSP)
+        ->DefOSC("ch_insert_point");
+
+        DefParameter(CHANNEL_INSERT_DSP_SLOT, cat, "Insert Slot", MAX_VCHANNELS)
+        ->DefNameShort("InsT")
+        ->DefUOM(MP_UOM::DSP_INSERT_SLOT)
+        ->DefHideEncoderSlider()
+        ->DefMinMaxStandard_Uint(0, MAX_FPGA_TO_DSP1_CHANNELS, 0)
+        ->DefOSC("ch_insert_slot");
+
         // Sends
         cat = MP_CAT::CHANNEL_SENDS;
         for (uint i = 0; i < BUS_SENDS; i++)
@@ -3883,6 +3897,18 @@ namespace OMC
                (fpgaInputIdx >= FPGA_INPUT_IDX_AES50B && fpgaInputIdx < FPGA_INPUT_IDX_AES50B + 48);
     }
 
+    bool Config::IsChannelInsertPreDsp(uint chanIndex)
+    {
+        return chanIndex < MAX_FPGA_TO_DSP1_CHANNELS &&
+               GetUint(CHANNEL_INSERT_POINT, chanIndex) == (uint)INSERT_POINT::PRE_DSP;
+    }
+
+    bool Config::IsChannelInsertInDsp(uint chanIndex)
+    {
+        return chanIndex < MAX_FPGA_TO_DSP1_CHANNELS &&
+               GetUint(CHANNEL_INSERT_POINT, chanIndex) != (uint)INSERT_POINT::PRE_DSP;
+    }
+
     uint Config::GetChannelLogicalFpgaInput(uint chanIndex)
     {
         if (chanIndex >= MAX_FPGA_TO_DSP1_CHANNELS) return FPGA_INPUT_IDX_OFF;
@@ -3893,9 +3919,12 @@ namespace OMC
 
     bool Config::IsChannelInsertSendActive(uint chanIndex)
     {
-        return chanIndex < MAX_FPGA_TO_DSP1_CHANNELS &&
-               GetChannelLogicalFpgaInput(chanIndex) != FPGA_INPUT_IDX_OFF &&
-               IsValidInsertSendOutput(GetUint(CHANNEL_INSERT_SEND, chanIndex));
+        if (chanIndex >= MAX_FPGA_TO_DSP1_CHANNELS) return false;
+        if (!IsValidInsertSendOutput(GetUint(CHANNEL_INSERT_SEND, chanIndex))) return false;
+        if (IsChannelInsertPreDsp(chanIndex))
+            return GetChannelLogicalFpgaInput(chanIndex) != FPGA_INPUT_IDX_OFF;
+        uint slot = GetUint(CHANNEL_INSERT_DSP_SLOT, chanIndex);
+        return slot >= 1 && slot <= MAX_FPGA_TO_DSP1_CHANNELS;
     }
 
     bool Config::IsChannelInsertActive(uint chanIndex)
@@ -3905,11 +3934,29 @@ namespace OMC
                IsValidInsertReturnInput(GetUint(CHANNEL_INSERT_RETURN, chanIndex));
     }
 
-    float Config::GetChannelInsertReturnTrimDb(uint chanIndex)
+    uint Config::GetChannelInsertDspReturnBufIdx(uint chanIndex)
+    {
+        if (!IsChannelInsertInDsp(chanIndex) || !IsChannelInsertActive(chanIndex)) return DSP_BUF_IDX_OFF;
+        uint slot = GetUint(CHANNEL_INSERT_DSP_SLOT, chanIndex);
+        return (slot >= 1 && slot <= MAX_FPGA_TO_DSP1_CHANNELS) ? (DSP_BUF_IDX_DSPCHANNEL + (slot - 1)) : DSP_BUF_IDX_OFF;
+    }
+
+    float Config::GetChannelInsertReturnTrimDb(uint dspChanIndex)
     {
         // Analog headamp insert returns are locked at -2.0dB hardware (step 0, +48V off);
         // add +2.0dB digital input trim for exact 0.0dB unity gain.
-        return (IsChannelInsertActive(chanIndex) && IsFpgaInputHeadamp(GetUint(CHANNEL_INSERT_RETURN, chanIndex))) ? 2.0f : 0.0f;
+        if (IsChannelInsertPreDsp(dspChanIndex) && IsChannelInsertActive(dspChanIndex) &&
+            IsFpgaInputHeadamp(GetUint(CHANNEL_INSERT_RETURN, dspChanIndex)))
+        {
+            return 2.0f;
+        }
+        // For In-DSP-Chain inserts, the analog return enters DSP1 on its dedicated spare TDM input slot.
+        int inDspOwner = FindInDspInsertTdmReturnOwnerChannel((FPGA_OUTPUT_IDX_DSP - 1) + dspChanIndex);
+        if (inDspOwner >= 0 && IsFpgaInputHeadamp(GetUint(CHANNEL_INSERT_RETURN, (uint)inDspOwner)))
+        {
+            return 2.0f;
+        }
+        return 0.0f;
     }
 
     int Config::FindInsertSendOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel)
@@ -3931,7 +3978,23 @@ namespace OMC
         uint dspInSlot = fpgaOut1Based - FPGA_OUTPUT_IDX_DSP + 1;
         for (uint ch = 0; ch < MAX_FPGA_TO_DSP1_CHANNELS; ch++)
         {
-            if ((int)ch != ignoreChannel && GetUint(ROUTING_DSP_INPUT, ch) == dspInSlot && IsChannelInsertActive(ch))
+            if ((int)ch != ignoreChannel && IsChannelInsertPreDsp(ch) &&
+                GetUint(ROUTING_DSP_INPUT, ch) == dspInSlot && IsChannelInsertActive(ch))
+                return (int)ch;
+        }
+        return -1;
+    }
+
+    int Config::FindInDspInsertTdmReturnOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel)
+    {
+        uint fpgaOut1Based = fpgaOutZeroBased + 1;
+        if (fpgaOut1Based < FPGA_OUTPUT_IDX_DSP || fpgaOut1Based >= FPGA_OUTPUT_IDX_DSP + MAX_FPGA_TO_DSP1_CHANNELS) return -1;
+        uint dspInSlot = fpgaOut1Based - FPGA_OUTPUT_IDX_DSP + 1;
+        for (uint ch = 0; ch < MAX_FPGA_TO_DSP1_CHANNELS; ch++)
+        {
+            if ((int)ch != ignoreChannel && IsChannelInsertInDsp(ch) &&
+                GetUint(CHANNEL_INSERT_DSP_SLOT, ch) == dspInSlot &&
+                IsValidInsertReturnInput(GetUint(CHANNEL_INSERT_RETURN, ch)))
                 return (int)ch;
         }
         return -1;
@@ -3952,12 +4015,41 @@ namespace OMC
     uint Config::GetEffectiveFpgaRoutingSource(uint fpgaOutZeroBased)
     {
         int sendOwner = FindInsertSendOwnerChannel(fpgaOutZeroBased);
-        if (sendOwner >= 0) return GetChannelLogicalFpgaInput((uint)sendOwner);
+        if (sendOwner >= 0)
+        {
+            if (IsChannelInsertPreDsp((uint)sendOwner))
+                return GetChannelLogicalFpgaInput((uint)sendOwner);
+            uint slot = GetUint(CHANNEL_INSERT_DSP_SLOT, (uint)sendOwner);
+            return FPGA_INPUT_IDX_DSP_RETURN + (slot - 1);
+        }
 
         int retOwner = FindActiveInsertDspInOwnerChannel(fpgaOutZeroBased);
         if (retOwner >= 0) return GetUint(CHANNEL_INSERT_RETURN, (uint)retOwner);
 
+        int inDspRetOwner = FindInDspInsertTdmReturnOwnerChannel(fpgaOutZeroBased);
+        if (inDspRetOwner >= 0) return GetUint(CHANNEL_INSERT_RETURN, (uint)inDspRetOwner);
+
         return GetUint(ROUTING_FPGA, fpgaOutZeroBased);
+    }
+
+    void Config::GetEffectiveDspOutputRouting(uint dspOutIndex, uint* sourceBufIdx, uint* tapPoint)
+    {
+        if (dspOutIndex < MAX_DSP1_TO_FPGA_CHANNELS)
+        {
+            uint slot = dspOutIndex + 1;
+            for (uint ch = 0; ch < MAX_FPGA_TO_DSP1_CHANNELS; ch++)
+            {
+                if (IsChannelInsertInDsp(ch) && GetUint(CHANNEL_INSERT_DSP_SLOT, ch) == slot &&
+                    IsValidInsertSendOutput(GetUint(CHANNEL_INSERT_SEND, ch)))
+                {
+                    *sourceBufIdx = DSP_BUF_IDX_DSPCHANNEL + ch;
+                    *tapPoint = GetUint(CHANNEL_INSERT_POINT, ch); // 1=PRE_EQ, 2=POST_EQ, 3=PRE_FADER
+                    return;
+                }
+            }
+        }
+        *sourceBufIdx = GetUint(ROUTING_DSP_OUTPUT, dspOutIndex);
+        *tapPoint = GetUint(ROUTING_DSP_OUTPUT_TAPPOINT, dspOutIndex);
     }
 
     String Config::GetFpgaPatchInsertWarning(uint fpgaOutZeroBased, uint newSourceIdx)
@@ -3968,7 +4060,11 @@ namespace OMC
 
         int activeOwner = FindActiveInsertDspInOwnerChannel(fpgaOutZeroBased);
         if (activeOwner >= 0)
-            return String("Warning: ") + GetString(CHANNEL_NAME_INTERN, (uint)activeOwner) + " has an active Insert (source updated on Send)!";
+            return String("Warning: ") + GetString(CHANNEL_NAME_INTERN, (uint)activeOwner) + " has an active Pre-DSP Insert (source updated on Send)!";
+
+        int inDspRetOwner = FindInDspInsertTdmReturnOwnerChannel(fpgaOutZeroBased);
+        if (inDspRetOwner >= 0)
+            return String("Warning: DSP In slot is used by ") + GetString(CHANNEL_NAME_INTERN, (uint)inDspRetOwner) + " In-DSP Insert Return!";
 
         if (newSourceIdx != FPGA_INPUT_IDX_OFF)
         {
@@ -3982,6 +4078,21 @@ namespace OMC
     String Config::GetChannelInsertConflictWarning(uint chanIndex, uint sendOutIdx, uint returnInIdx)
     {
         if (chanIndex >= MAX_FPGA_TO_DSP1_CHANNELS) return "";
+
+        if (IsChannelInsertInDsp(chanIndex))
+        {
+            uint slot = GetUint(CHANNEL_INSERT_DSP_SLOT, chanIndex);
+            if (slot >= 1 && slot <= MAX_FPGA_TO_DSP1_CHANNELS)
+            {
+                for (uint ch = 0; ch < MAX_FPGA_TO_DSP1_CHANNELS; ch++)
+                {
+                    if (GetUint(ROUTING_DSP_INPUT, ch) == slot)
+                        return String("Warning: DSP TDM ") + slot + " is already used as input by " + GetString(CHANNEL_NAME_INTERN, ch) + "!";
+                    if (ch != chanIndex && IsChannelInsertInDsp(ch) && GetUint(CHANNEL_INSERT_DSP_SLOT, ch) == slot)
+                        return String("Warning: DSP TDM ") + slot + " is already used by " + GetString(CHANNEL_NAME_INTERN, ch) + " Insert!";
+                }
+            }
+        }
 
         if (sendOutIdx != FPGA_OUTPUT_IDX_OFF)
         {
@@ -4011,7 +4122,7 @@ namespace OMC
         return "";
     }
 
-    TEST_CASE("Channel I/O Inserts - routing, always-fed send, non-paired I/O, exact 0dB trim, and conflict warnings")
+    TEST_CASE("Channel I/O Inserts - Pre-DSP and In-DSP-Chain routing, always-fed send, non-paired I/O, exact 0dB trim, and conflict warnings")
     {
         Helper h;
         Config cfg("X32", &h, false);
@@ -4020,6 +4131,7 @@ namespace OMC
         cfg.Set(ROUTING_FPGA, FPGA_INPUT_IDX_XLR + 0, FPGA_OUTPUT_IDX_DSP - 1 + 0);
         cfg.Set(ROUTING_DSP_INPUT, DSP_BUF_IDX_DSPCHANNEL + 0, 0);
 
+        CHECK(cfg.IsChannelInsertPreDsp(0) == true);
         CHECK(cfg.GetChannelLogicalFpgaInput(0) == FPGA_INPUT_IDX_XLR);
         CHECK(cfg.IsFpgaInputHeadamp(cfg.GetChannelLogicalFpgaInput(0)) == true);
         CHECK(cfg.IsChannelInsertSendActive(0) == false);
@@ -4027,24 +4139,25 @@ namespace OMC
         CHECK(cfg.GetChannelInsertReturnTrimDb(0) == doctest::Approx(0.0f));
         CHECK(cfg.GetEffectiveFpgaRoutingSource(FPGA_OUTPUT_IDX_DSP - 1 + 0) == FPGA_INPUT_IDX_XLR);
 
-        // Configure non-paired insert: Send = Card Out 1, Return = AES50A In 5, Insert OFF (bypassed)
+        // Pre-DSP non-paired insert: Send = Card Out 1, Return = AES50A In 5, Insert OFF (bypassed)
         uint sendOut = FPGA_OUTPUT_IDX_CARD + 0;      // Card Out 1 (33)
         uint retIn = FPGA_INPUT_IDX_AES50A + 4;       // AES50A In 5 (117)
         cfg.Set(CHANNEL_INSERT_SEND, sendOut, 0);
         cfg.Set(CHANNEL_INSERT_RETURN, retIn, 0);
         cfg.Set(CHANNEL_INSERT_ENABLE, false, 0);
 
+        CHECK(cfg.GetParameter(CHANNEL_INSERT_POINT)->GetFormatedValue(0) == "Pre-DSP");
         CHECK(cfg.GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(0) == "Card Out 1");
         CHECK(cfg.GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue(0) == "AES50A In 5");
 
-        // Send must always be fed even when insert is OFF; trim stays 0.0dB while bypassed
+        // Send always fed even when bypassed; trim stays 0.0dB while bypassed
         CHECK(cfg.IsChannelInsertSendActive(0) == true);
         CHECK(cfg.IsChannelInsertActive(0) == false);
         CHECK(cfg.GetChannelInsertReturnTrimDb(0) == doctest::Approx(0.0f));
         CHECK(cfg.GetEffectiveFpgaRoutingSource(sendOut - 1) == FPGA_INPUT_IDX_XLR);
         CHECK(cfg.GetEffectiveFpgaRoutingSource(FPGA_OUTPUT_IDX_DSP - 1 + 0) == FPGA_INPUT_IDX_XLR);
 
-        // Enable Insert ON -> analog headamp return gets +2.0dB trim (with -2.0dB hw = exact 0.0dB)
+        // Enable Pre-DSP Insert ON -> analog headamp return gets +2.0dB trim (with -2.0dB hw = exact 0.0dB)
         cfg.Set(CHANNEL_INSERT_ENABLE, true, 0);
         CHECK(cfg.IsChannelInsertActive(0) == true);
         CHECK(cfg.GetChannelInsertReturnTrimDb(0) == doctest::Approx(2.0f));
@@ -4056,6 +4169,31 @@ namespace OMC
         cfg.Set(CHANNEL_INSERT_RETURN, FPGA_INPUT_IDX_CARD + 0, 0);
         CHECK(cfg.GetChannelInsertReturnTrimDb(0) == doctest::Approx(0.0f));
         cfg.Set(CHANNEL_INSERT_RETURN, retIn, 0);
+
+        // Switch Channel 1 to In-DSP-Chain (Post-EQ) using spare DSP TDM slot 33 (index 32)
+        cfg.Set(CHANNEL_INSERT_POINT, (uint)INSERT_POINT::POST_EQ, 0);
+        cfg.Set(CHANNEL_INSERT_DSP_SLOT, 33, 0);
+        CHECK(cfg.IsChannelInsertInDsp(0) == true);
+        CHECK(cfg.GetParameter(CHANNEL_INSERT_POINT)->GetFormatedValue(0) == "Post-EQ");
+        CHECK(cfg.GetParameter(CHANNEL_INSERT_DSP_SLOT)->GetFormatedValue(0) == "DSP TDM 33");
+        // Channel 1's own DSP In 1 returns to logical XLR In 1
+        CHECK(cfg.GetEffectiveFpgaRoutingSource(FPGA_OUTPUT_IDX_DSP - 1 + 0) == FPGA_INPUT_IDX_XLR);
+        // Card Out 1 (Insert Send) is fed from DSP Return 33
+        CHECK(cfg.GetEffectiveFpgaRoutingSource(sendOut - 1) == FPGA_INPUT_IDX_DSP_RETURN + 32);
+        // Spare DSP In 33 receives AES50A In 5 (Insert Return) and gets +2.0dB unity trim
+        CHECK(cfg.GetEffectiveFpgaRoutingSource(FPGA_OUTPUT_IDX_DSP - 1 + 32) == retIn);
+        CHECK(cfg.GetChannelInsertReturnTrimDb(0) == doctest::Approx(0.0f));
+        CHECK(cfg.GetChannelInsertReturnTrimDb(32) == doctest::Approx(2.0f));
+        CHECK(cfg.GetChannelInsertDspReturnBufIdx(0) == DSP_BUF_IDX_DSPCHANNEL + 32);
+        // DSP1 output 32 taps Channel 1 at POST_EQ
+        uint dspOutSrc = 0, dspOutTap = 0;
+        cfg.GetEffectiveDspOutputRouting(32, &dspOutSrc, &dspOutTap);
+        CHECK(dspOutSrc == DSP_BUF_IDX_DSPCHANNEL + 0);
+        CHECK(dspOutTap == (uint)INSERT_POINT::POST_EQ);
+        // Warning when patching spare DSP In 33
+        CHECK(cfg.GetFpgaPatchInsertWarning(FPGA_OUTPUT_IDX_DSP - 1 + 32, FPGA_INPUT_IDX_XLR + 5).length() > 0);
+        // Switch back to Pre-DSP for remaining checks
+        cfg.Set(CHANNEL_INSERT_POINT, (uint)INSERT_POINT::PRE_DSP, 0);
 
         // Encoder step skips invalid internal range (71..112) in both directions
         cfg.Set(CHANNEL_INSERT_SEND, FPGA_OUTPUT_IDX_AUX + 5, 1); // 70 (AUX Out 6)

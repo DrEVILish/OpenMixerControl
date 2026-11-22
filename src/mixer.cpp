@@ -419,9 +419,9 @@ void Mixer::Sync()
     }
 
     // Channel I/O Inserts (deduplicated per channel per tick)
-    if (config->HasParametersChanged({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}))
+    if (config->HasParametersChanged({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
     {
-        for (auto const& changedIndex : config->GetChangedParameterIndexes({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}))
+        for (auto const& changedIndex : config->GetChangedParameterIndexes({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
         {
             if (changedIndex < MAX_FPGA_TO_DSP1_CHANNELS)
             {
@@ -599,12 +599,34 @@ void Mixer::syncChannelInsert(uint chanIndex) {
         fpga->SendRoutingToFpga(sendOut - 1);
     }
 
-    // Update the DSP In FPGA slot (routes insert return when enabled, or logical input when bypassed)
+    // Restore previous In-DSP TDM slot (both DSP Out and spare DSP In) if it changed
+    uint newDspSlot = config->IsChannelInsertInDsp(chanIndex) ? config->GetUint(CHANNEL_INSERT_DSP_SLOT, chanIndex) : 0;
+    uint8_t oldDspSlot = prevInsertDspSlot[chanIndex];
+    if (oldDspSlot != newDspSlot && oldDspSlot >= 1 && oldDspSlot <= MAX_FPGA_TO_DSP1_CHANNELS)
+    {
+        dsp->SetOutputRouting(oldDspSlot - 1);
+        fpga->SendRoutingToFpga((FPGA_OUTPUT_IDX_DSP - 1) + (oldDspSlot - 1));
+        dsp->SendChannelVolume(oldDspSlot - 1);
+    }
+    prevInsertDspSlot[chanIndex] = (uint8_t)newDspSlot;
+
+    // Update new In-DSP TDM slot (DSP Out tap -> FPGA -> Send, Return -> FPGA -> spare DSP In)
+    if (newDspSlot >= 1 && newDspSlot <= MAX_FPGA_TO_DSP1_CHANNELS)
+    {
+        dsp->SetOutputRouting(newDspSlot - 1);
+        fpga->SendRoutingToFpga((FPGA_OUTPUT_IDX_DSP - 1) + (newDspSlot - 1));
+        dsp->SendChannelVolume(newDspSlot - 1);
+    }
+
+    // Update the channel's own DSP In FPGA slot (Pre-DSP return when enabled, or logical input otherwise)
     uint dspIn = config->GetUint(ROUTING_DSP_INPUT, chanIndex);
     if (dspIn >= DSP_BUF_IDX_DSPCHANNEL && dspIn < (DSP_BUF_IDX_AUX + 8))
     {
         fpga->SendRoutingToFpga((FPGA_OUTPUT_IDX_DSP - 1) + (dspIn - 1));
     }
+
+    // Send In-DSP-Chain splice state to DSP1 (disabled for Pre-DSP mode)
+    dsp->SendChannelInsert(chanIndex);
 
     // Lock analog headamp insert returns to -2.0dB (+48V off) for exact 0.0dB with +2.0dB DSP trim
     if (config->IsValidInsertReturnInput(returnIn) && config->IsFpgaInputHeadamp(returnIn))
@@ -612,7 +634,7 @@ void Mixer::syncChannelInsert(uint chanIndex) {
         halWriteHeadamp((uint8_t)returnIn, -2.0f, false);
     }
 
-    // Update DSP input trim (+2.0dB when analog insert return is active, 0.0dB otherwise)
+    // Update DSP input trim (+2.0dB when Pre-DSP analog insert return is active, 0.0dB otherwise)
     dsp->SendChannelVolume(chanIndex);
 }
 

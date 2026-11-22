@@ -502,10 +502,31 @@ void DSP1::SetInputRouting(uint chanIndex)
 void DSP1::SetOutputRouting(uint chanIndex) {
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "Hardware: DSP Output Routing for channelindex %d", chanIndex);
 
+    uint srcBuf = 0;
+    uint tapPoint = 0;
+    config->GetEffectiveDspOutputRouting(chanIndex, &srcBuf, &tapPoint);
+
     uint32_t values[2];
-    values[0] = config->GetUint(ROUTING_DSP_OUTPUT, chanIndex);
-    values[1] = config->GetUint(ROUTING_DSP_OUTPUT_TAPPOINT, chanIndex);
+    values[0] = srcBuf;
+    values[1] = tapPoint;
     spi->QueueDspData(0, 'r', chanIndex, 1, 2, (float*)&values[0]);
+}
+
+// Send In-DSP-Chain insert splice configuration to DSP1 (SPI class 'i').
+// Requires matching mid-strip splice support in OpenAudioDSP (Pre-DSP inserts run purely in the FPGA).
+void DSP1::SendChannelInsert(uint chanIndex) {
+    if (chanIndex >= MAX_FPGA_TO_DSP1_CHANNELS) return;
+
+    uint32_t values[3];
+    bool inDspActive = config->IsChannelInsertInDsp(chanIndex) && config->IsChannelInsertActive(chanIndex);
+    values[0] = inDspActive ? 1 : 0;
+    values[1] = inDspActive ? config->GetUint(CHANNEL_INSERT_POINT, chanIndex) : 0; // 1=PRE_EQ, 2=POST_EQ, 3=PRE_FADER
+    values[2] = inDspActive ? config->GetChannelInsertDspReturnBufIdx(chanIndex) : 0;
+
+    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "Hardware: DSP Channel Insert ch=%u en=%u point=%u retBuf=%u",
+        chanIndex, values[0], values[1], values[2]);
+
+    spi->QueueDspData(0, 'i', chanIndex, 0, 3, (float*)&values[0]);
 }
 
 uint8_t DSP1::GetPeak(int i, uint8_t steps)

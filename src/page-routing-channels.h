@@ -226,12 +226,13 @@ class PageRoutingChannels: public Page
         void BindInsertUtilityMode()
         {
             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_1, String(LV_SYMBOL_UP) + String("\nSelect\n") + LV_SYMBOL_DOWN);
-            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_2, String(LV_SYMBOL_UP) + String("\nSelect (8)\n") + LV_SYMBOL_DOWN);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_2, MixerparameterAction::CHANGE, CHANNEL_INSERT_POINT, (uint)gui_selected_item);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_3, MixerparameterAction::CHANGE, CHANNEL_INSERT_SEND, (uint)gui_selected_item);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_3, MixerparameterAction::RESET, CHANNEL_INSERT_SEND, (uint)gui_selected_item);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_4, MixerparameterAction::CHANGE, CHANNEL_INSERT_RETURN, (uint)gui_selected_item);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_4, MixerparameterAction::RESET, CHANNEL_INSERT_RETURN, (uint)gui_selected_item);
-            config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_5);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_5, MixerparameterAction::CHANGE, CHANNEL_INSERT_DSP_SLOT, (uint)gui_selected_item);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_5, MixerparameterAction::RESET, CHANNEL_INSERT_DSP_SLOT, (uint)gui_selected_item);
             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_6, "Insert\nOn / Off");
             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_BUTTON_6);
         }
@@ -244,15 +245,12 @@ class PageRoutingChannels: public Page
                 String src = config->GetParameter(ROUTING_FPGA)->GetFormatedValue(FPGA_OUTPUT_IDX_DSP - 1 + (dspIn - 1));
                 bool hasInsPatch = config->GetUint(CHANNEL_INSERT_SEND, index) != FPGA_OUTPUT_IDX_OFF ||
                                    config->GetUint(CHANNEL_INSERT_RETURN, index) != FPGA_INPUT_IDX_OFF;
-                if (config->IsChannelInsertActive(index))
+                if (config->IsChannelInsertActive(index) || hasInsPatch)
                 {
-                    src += String(" [INS ON: ") +
-                           config->GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(index) + "/" +
-                           config->GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue(index) + "]";
-                }
-                else if (hasInsPatch)
-                {
-                    src += String(" [INS BYP: ") +
+                    String pt = config->GetParameter(CHANNEL_INSERT_POINT)->GetFormatedValue(index);
+                    if (config->IsChannelInsertInDsp(index))
+                        pt += String(" ") + config->GetParameter(CHANNEL_INSERT_DSP_SLOT)->GetFormatedValue(index);
+                    src += String(config->IsChannelInsertActive(index) ? " [INS ON " : " [INS BYP ") + pt + ": " +
                            config->GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(index) + "/" +
                            config->GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue(index) + "]";
                 }
@@ -278,9 +276,9 @@ class PageRoutingChannels: public Page
                     lv_table_set_cell_value(objects.table_routing_dsp_input, index, 2, config->GetParameter(ROUTING_DSP_INPUT_TAPPOINT)->GetFormatedValue(index).c_str());
                 }
             }
-            else if (config->HasParametersChanged({ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT, CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}))
+            else if (config->HasParametersChanged({ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT, CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
             {
-                for (auto const& index : config->GetChangedParameterIndexes({ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT, CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}))
+                for (auto const& index : config->GetChangedParameterIndexes({ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT, CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
                 {
                     if (index >= 40) continue;
                     lv_table_set_cell_value(objects.table_routing_dsp_input, index, 0, FormatRowSource(index).c_str());
@@ -288,9 +286,9 @@ class PageRoutingChannels: public Page
                 }
             }
 
-            if (config->HasParametersChanged({CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}))
+            if (config->HasParametersChanged({CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
             {
-                for (auto const& index : config->GetChangedParameterIndexes({CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}))
+                for (auto const& index : config->GetChangedParameterIndexes({CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
                 {
                     String warning = config->GetChannelInsertConflictWarning(index, config->GetUint(CHANNEL_INSERT_SEND, index), config->GetUint(CHANNEL_INSERT_RETURN, index));
                     if (warning.length() > 0) ShowWarningBanner(warning);

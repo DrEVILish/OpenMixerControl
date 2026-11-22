@@ -53,6 +53,7 @@ class DSP1 : X32Base {
         void SetOutputDelay(uint dspChannel);
         void SetInputRouting(uint dspChannel);
         void SetOutputRouting(uint dspChannel);
+        void SendChannelInsert(uint chanIndex);
         void ChannelSendTapPoints(uint chanIndex);
         void SetMainSendTapPoints(uint8_t matrixChannel, uint8_t tapPoint);
         String RoutingGetOutputNameByIndex(uint8_t index);

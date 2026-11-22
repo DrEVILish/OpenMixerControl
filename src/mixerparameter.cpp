@@ -44,6 +44,8 @@ namespace OMC
             case FPGA_ROUTING:
             case FPGA_ROUTING_OUTPUT:
             case DSP_ROUTING:
+            case INSERT_POINT:
+            case DSP_INSERT_SLOT:
             case CHANNEL_LCD_MODE:
             case CARD_NUMBER_OF_CHANNELS:
             case CARD_SDCARD_STATE:
@@ -353,6 +355,22 @@ String Mixerparameter::GetUnitOfMeasurement(bool spaceInFront, uint index, bool 
                         default:
                             result += "???";
                     }
+                }
+                break;
+            case INSERT_POINT:
+                switch ((::INSERT_POINT)(isResetLabel ? value_standard : value[index]))
+                {
+                    case ::INSERT_POINT::PRE_DSP:   result += "Pre-DSP"; break;
+                    case ::INSERT_POINT::PRE_EQ:    result += "Pre-EQ"; break;
+                    case ::INSERT_POINT::POST_EQ:   result += "Post-EQ"; break;
+                    case ::INSERT_POINT::PRE_FADER: result += "Pre-Fader"; break;
+                    default:                        result += "???"; break;
+                }
+                break;
+            case DSP_INSERT_SLOT:
+                {
+                    uint slot = (uint)(isResetLabel ? value_standard : value[index]);
+                    result += (slot == 0) ? String("OFF") : (String("DSP TDM ") + slot);
                 }
                 break;
             case TAPPOINT:

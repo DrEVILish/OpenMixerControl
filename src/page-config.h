@@ -24,13 +24,14 @@ class PageConfig : public Page
                 lv_label_set_text(config_insert_status, "INS: N/A");
                 return;
             }
+            String pt = config->GetParameter(CHANNEL_INSERT_POINT)->GetFormatedValue(chanIndex);
             String text = config->IsChannelInsertActive(chanIndex)
-                ? (String("INS: ON  ") + config->GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(chanIndex) +
+                ? (String("INS [") + pt + "]: ON  " + config->GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(chanIndex) +
                    " -> " + config->GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue(chanIndex))
                 : (config->GetUint(CHANNEL_INSERT_SEND, chanIndex) || config->GetUint(CHANNEL_INSERT_RETURN, chanIndex)
-                    ? (String("INS: BYP ") + config->GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(chanIndex) +
+                    ? (String("INS [") + pt + "]: BYP " + config->GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(chanIndex) +
                        " / " + config->GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue(chanIndex))
-                    : String("INS: OFF"));
+                    : (String("INS [") + pt + "]: OFF"));
             lv_label_set_text(config_insert_status, text.c_str());
         }
 
@@ -237,7 +238,7 @@ class PageConfig : public Page
                 }
             }
 
-            if (config->HasParametersChanged({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}, chanIndex) || force_update)
+            if (config->HasParametersChanged({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}, chanIndex) || force_update)
             {
                 UpdateInsertStatusLabel(chanIndex);
             }

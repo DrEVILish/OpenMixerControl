@@ -57,7 +57,7 @@ class PageRoutingFpga: public Page
                 }
                 LoadMatrix();
             }
-            else if (config->HasParametersChanged({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}) || force)
+            else if (config->HasParametersChanged({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}) || force)
             {
                 LoadMatrix();
             }
@@ -185,6 +185,7 @@ class PageRoutingFpga: public Page
                     uint fpgaOut0 = i + targetblockoffset;
                     int sendOwner = config->FindInsertSendOwnerChannel(fpgaOut0);
                     int activeRetOwner = config->FindActiveInsertDspInOwnerChannel(fpgaOut0);
+                    int inDspRetOwner = config->FindInDspInsertTdmReturnOwnerChannel(fpgaOut0);
 
                     switch (selection_target)
                     {
@@ -194,6 +195,10 @@ class PageRoutingFpga: public Page
                             if (activeRetOwner >= 0)
                             {
                                 footer = String("INS: ") + config->GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue((uint)activeRetOwner);
+                            }
+                            else if (inDspRetOwner >= 0)
+                            {
+                                footer = String("INS RET ") + config->GetString(CHANNEL_NAME_INTERN, (uint)inDspRetOwner);
                             }
                             else
                             {

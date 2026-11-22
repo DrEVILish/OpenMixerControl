@@ -114,6 +114,8 @@ enum class MP_UOM {
     FPGA_ROUTING,
     FPGA_ROUTING_OUTPUT,
     DSP_ROUTING,
+    INSERT_POINT,
+    DSP_INSERT_SLOT,
     TAPPOINT,
     ZERO_BASED_INDEX__START_BY_ONE,
     CHANNEL_LCD_MODE, // Displaymode of Channel LCDs
@@ -506,9 +508,11 @@ enum class MP_ID {
     CHANNEL_INSERT_ENABLE = 282,
     CHANNEL_INSERT_SEND = 283,
     CHANNEL_INSERT_RETURN = 284,
+    CHANNEL_INSERT_POINT = 285,
+    CHANNEL_INSERT_DSP_SLOT = 286,
 
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 285
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 287
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!
@@ -1145,6 +1149,14 @@ enum class DSP_TAP : int
     POST_EQ = 2,
     PRE_FADER = 3,
     POST_FADER = 4,
+};
+
+enum class INSERT_POINT : int
+{
+    PRE_DSP = 0,
+    PRE_EQ = 1,
+    POST_EQ = 2,
+    PRE_FADER = 3,
 };
 
 /// @brief Surface Binding Action
