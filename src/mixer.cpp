@@ -419,9 +419,10 @@ void Mixer::Sync()
     }
 
     // Channel I/O Inserts (deduplicated per channel per tick)
-    if (config->HasParametersChanged({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
+    const vector<MP_ID> insertParams = {CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT};
+    if (config->HasParametersChanged(insertParams))
     {
-        for (auto const& changedIndex : config->GetChangedParameterIndexes({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
+        for (auto const& changedIndex : config->GetChangedParameterIndexes(insertParams))
         {
             if (changedIndex < MAX_FPGA_TO_DSP1_CHANNELS)
             {
@@ -625,8 +626,11 @@ void Mixer::syncChannelInsert(uint chanIndex) {
         fpga->SendRoutingToFpga((FPGA_OUTPUT_IDX_DSP - 1) + (dspIn - 1));
     }
 
-    // Send In-DSP-Chain splice state to DSP1 (disabled for Pre-DSP mode)
-    dsp->SendChannelInsert(chanIndex);
+    // Send In-DSP-Chain splice state to DSP1 only when entering, updating, or leaving In-DSP mode
+    if (newDspSlot != 0 || oldDspSlot != 0)
+    {
+        dsp->SendChannelInsert(chanIndex);
+    }
 
     // Lock analog headamp insert returns to -2.0dB (+48V off) for exact 0.0dB with +2.0dB DSP trim
     if (config->IsValidInsertReturnInput(returnIn) && config->IsFpgaInputHeadamp(returnIn))

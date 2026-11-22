@@ -194,6 +194,7 @@ namespace OMC
             int FindInsertSendOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel = -1);
             int FindActiveInsertDspInOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel = -1);
             int FindInDspInsertTdmReturnOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel = -1);
+            int FindInDspInsertTdmOutOwnerChannel(uint dspOutIndex, int ignoreChannel = -1);
             int FindInsertReturnOwnerChannel(uint fpgaInputIdx, int ignoreChannel = -1);
             String GetFpgaPatchInsertWarning(uint fpgaOutZeroBased, uint newSourceIdx);
             String GetChannelInsertConflictWarning(uint chanIndex, uint sendOutIdx, uint returnInIdx);

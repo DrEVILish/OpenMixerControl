@@ -96,9 +96,16 @@ void DSP1::SendChannelVolume(uint chanIndex)
     // convert volume from dB to linear
     float trim_pu;
     float insertReturnTrimDb = config->GetChannelInsertReturnTrimDb(chanIndex);
+    bool isSpareInDspReturn = (chanIndex < MAX_FPGA_TO_DSP1_CHANNELS) &&
+        (config->FindInDspInsertTdmReturnOwnerChannel((FPGA_OUTPUT_IDX_DSP - 1) + chanIndex) >= 0);
 
     // check if current channel has an adjustable gain. If not, apply GAIN as TRIM
-    if (ChannelHasAdjustableGain(chanIndex))
+    if (isSpareInDspReturn)
+    {
+        // Dedicated spare TDM return slot: ignore channel trim so insert return is exact 0.0dB
+        trim_pu = pow(10.0f, insertReturnTrimDb / 20.0f);
+    }
+    else if (ChannelHasAdjustableGain(chanIndex))
     {
         // apply digital gain to increase gain-resolution as hardware supports 2.5dB-steps "only"
         volumeLR = CompensateGainAndVolume(config->GetFloat(CHANNEL_GAIN, chanIndex), volumeLR);

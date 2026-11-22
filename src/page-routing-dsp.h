@@ -212,25 +212,45 @@ class PageRoutingDsp: public Page
 		void OnChange(bool force) override
 		{
             UpdateRowSelection();
-            
-	 		if(config->HasParametersChanged({ROUTING_DSP_OUTPUT, ROUTING_DSP_OUTPUT_TAPPOINT, DELAY_DSP_OUTPUT}) || force)
+
+            const vector<MP_ID> dspOutParams = {ROUTING_DSP_OUTPUT, ROUTING_DSP_OUTPUT_TAPPOINT, DELAY_DSP_OUTPUT};
+            const vector<MP_ID> insertParams = {CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT};
+            bool refreshAll = force || config->HasParametersChanged(insertParams);
+
+	 		if (refreshAll || config->HasParametersChanged(dspOutParams))
 	 		{
-	 			for(auto const& index : config->GetChangedParameterIndexes({ROUTING_DSP_OUTPUT, ROUTING_DSP_OUTPUT_TAPPOINT, DELAY_DSP_OUTPUT}))
-                {
-	 				if ((config->GetUint(ROUTING_DSP_OUTPUT, index) >= 1) && (config->GetUint(ROUTING_DSP_OUTPUT, index) <= 40)) {
-	 					// external signal from FPGA
-	 					lv_table_set_cell_value(objects.table_routing_dsp_output, index, 0, (config->GetParameter(ROUTING_FPGA)->GetFormatedValue(FPGA_OUTPUT_IDX_DSP - 1 + config->GetUint(ROUTING_DSP_OUTPUT, index) - 1) + " -> " + config->GetParameter(ROUTING_DSP_OUTPUT)->GetFormatedValue(index)).c_str());
-	 				}else{
-	 					// internal signal within DSP
-	 					lv_table_set_cell_value(objects.table_routing_dsp_output, index, 0, config->GetParameter(ROUTING_DSP_OUTPUT)->GetFormatedValue(index).c_str());
-	 				}
-	 				lv_table_set_cell_value(objects.table_routing_dsp_output, index, 2, config->GetParameter(ROUTING_DSP_OUTPUT_TAPPOINT)->GetFormatedValue(index).c_str());
+                auto updateRow = [&](uint index) {
+                    int insOwner = config->FindInDspInsertTdmOutOwnerChannel(index);
+                    if (insOwner >= 0)
+                    {
+                        String src = String("INS SEND ") + config->GetString(CHANNEL_NAME_INTERN, (uint)insOwner);
+                        lv_table_set_cell_value(objects.table_routing_dsp_output, index, 0, src.c_str());
+                        lv_table_set_cell_value(objects.table_routing_dsp_output, index, 2, config->GetParameter(CHANNEL_INSERT_POINT)->GetFormatedValue((uint)insOwner).c_str());
+                    }
+                    else
+                    {
+                        if ((config->GetUint(ROUTING_DSP_OUTPUT, index) >= 1) && (config->GetUint(ROUTING_DSP_OUTPUT, index) <= 40)) {
+                            lv_table_set_cell_value(objects.table_routing_dsp_output, index, 0, (config->GetParameter(ROUTING_FPGA)->GetFormatedValue(FPGA_OUTPUT_IDX_DSP - 1 + config->GetUint(ROUTING_DSP_OUTPUT, index) - 1) + " -> " + config->GetParameter(ROUTING_DSP_OUTPUT)->GetFormatedValue(index)).c_str());
+                        } else {
+                            lv_table_set_cell_value(objects.table_routing_dsp_output, index, 0, config->GetParameter(ROUTING_DSP_OUTPUT)->GetFormatedValue(index).c_str());
+                        }
+                        lv_table_set_cell_value(objects.table_routing_dsp_output, index, 2, config->GetParameter(ROUTING_DSP_OUTPUT_TAPPOINT)->GetFormatedValue(index).c_str());
+                    }
 
                     if (index < MAX_DSP1_TO_FPGA_CHANNELS) {
                         lv_table_set_cell_value(objects.table_routing_dsp_output, index, 5, config->GetParameter(DELAY_DSP_OUTPUT)->GetFormatedValue(index).c_str());
-                    }else{
+                    } else {
                         lv_table_set_cell_value(objects.table_routing_dsp_output, index, 5, "-");
                     }
+                };
+
+                if (refreshAll)
+                {
+                    for (uint index = 0; index < (MAX_DSP1_TO_FPGA_CHANNELS + MAX_DSP1_TO_DSP2_CHANNELS); index++) updateRow(index);
+                }
+                else
+                {
+                    for (auto const& index : config->GetChangedParameterIndexes(dspOutParams)) updateRow(index);
                 }
 	 		}
 		}

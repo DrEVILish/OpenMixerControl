@@ -4032,21 +4032,28 @@ namespace OMC
         return GetUint(ROUTING_FPGA, fpgaOutZeroBased);
     }
 
+    int Config::FindInDspInsertTdmOutOwnerChannel(uint dspOutIndex, int ignoreChannel)
+    {
+        if (dspOutIndex >= MAX_DSP1_TO_FPGA_CHANNELS) return -1;
+        uint slot = dspOutIndex + 1;
+        for (uint ch = 0; ch < MAX_FPGA_TO_DSP1_CHANNELS; ch++)
+        {
+            if ((int)ch != ignoreChannel && IsChannelInsertInDsp(ch) &&
+                GetUint(CHANNEL_INSERT_DSP_SLOT, ch) == slot &&
+                IsValidInsertSendOutput(GetUint(CHANNEL_INSERT_SEND, ch)))
+                return (int)ch;
+        }
+        return -1;
+    }
+
     void Config::GetEffectiveDspOutputRouting(uint dspOutIndex, uint* sourceBufIdx, uint* tapPoint)
     {
-        if (dspOutIndex < MAX_DSP1_TO_FPGA_CHANNELS)
+        int owner = FindInDspInsertTdmOutOwnerChannel(dspOutIndex);
+        if (owner >= 0)
         {
-            uint slot = dspOutIndex + 1;
-            for (uint ch = 0; ch < MAX_FPGA_TO_DSP1_CHANNELS; ch++)
-            {
-                if (IsChannelInsertInDsp(ch) && GetUint(CHANNEL_INSERT_DSP_SLOT, ch) == slot &&
-                    IsValidInsertSendOutput(GetUint(CHANNEL_INSERT_SEND, ch)))
-                {
-                    *sourceBufIdx = DSP_BUF_IDX_DSPCHANNEL + ch;
-                    *tapPoint = GetUint(CHANNEL_INSERT_POINT, ch); // 1=PRE_EQ, 2=POST_EQ, 3=PRE_FADER
-                    return;
-                }
-            }
+            *sourceBufIdx = DSP_BUF_IDX_DSPCHANNEL + (uint)owner;
+            *tapPoint = GetUint(CHANNEL_INSERT_POINT, (uint)owner); // 1=PRE_EQ, 2=POST_EQ, 3=PRE_FADER
+            return;
         }
         *sourceBufIdx = GetUint(ROUTING_DSP_OUTPUT, dspOutIndex);
         *tapPoint = GetUint(ROUTING_DSP_OUTPUT_TAPPOINT, dspOutIndex);
@@ -4084,6 +4091,9 @@ namespace OMC
             uint slot = GetUint(CHANNEL_INSERT_DSP_SLOT, chanIndex);
             if (slot >= 1 && slot <= MAX_FPGA_TO_DSP1_CHANNELS)
             {
+                uint existingDspOut = GetUint(ROUTING_DSP_OUTPUT, slot - 1);
+                if (existingDspOut == DSP_BUF_IDX_MONLEFT || existingDspOut == DSP_BUF_IDX_MONRIGHT)
+                    return String("Warning: DSP TDM ") + slot + " is used by Monitor L/R output!";
                 for (uint ch = 0; ch < MAX_FPGA_TO_DSP1_CHANNELS; ch++)
                 {
                     if (GetUint(ROUTING_DSP_INPUT, ch) == slot)
@@ -4190,8 +4200,12 @@ namespace OMC
         cfg.GetEffectiveDspOutputRouting(32, &dspOutSrc, &dspOutTap);
         CHECK(dspOutSrc == DSP_BUF_IDX_DSPCHANNEL + 0);
         CHECK(dspOutTap == (uint)INSERT_POINT::POST_EQ);
-        // Warning when patching spare DSP In 33
+        // Warning when patching spare DSP In 33 or overriding Monitor L/R on TDM slot 39
         CHECK(cfg.GetFpgaPatchInsertWarning(FPGA_OUTPUT_IDX_DSP - 1 + 32, FPGA_INPUT_IDX_XLR + 5).length() > 0);
+        cfg.Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONLEFT, 38);
+        cfg.Set(CHANNEL_INSERT_DSP_SLOT, 39, 0);
+        CHECK(cfg.GetChannelInsertConflictWarning(0, FPGA_OUTPUT_IDX_OFF, FPGA_INPUT_IDX_OFF).length() > 0);
+        cfg.Set(CHANNEL_INSERT_DSP_SLOT, 33, 0);
         // Switch back to Pre-DSP for remaining checks
         cfg.Set(CHANNEL_INSERT_POINT, (uint)INSERT_POINT::PRE_DSP, 0);
 

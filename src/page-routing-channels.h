@@ -268,6 +268,7 @@ class PageRoutingChannels: public Page
                 BindInsertUtilityMode();
             }
 
+            const vector<MP_ID> rowParams = {ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT, CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT};
             if (force || config->HasParameterChanged(ROUTING_FPGA))
             {
                 for (uint index = 0; index < 40; index++)
@@ -276,9 +277,9 @@ class PageRoutingChannels: public Page
                     lv_table_set_cell_value(objects.table_routing_dsp_input, index, 2, config->GetParameter(ROUTING_DSP_INPUT_TAPPOINT)->GetFormatedValue(index).c_str());
                 }
             }
-            else if (config->HasParametersChanged({ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT, CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
+            else if (config->HasParametersChanged(rowParams))
             {
-                for (auto const& index : config->GetChangedParameterIndexes({ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT, CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
+                for (auto const& index : config->GetChangedParameterIndexes(rowParams))
                 {
                     if (index >= 40) continue;
                     lv_table_set_cell_value(objects.table_routing_dsp_input, index, 0, FormatRowSource(index).c_str());
@@ -286,9 +287,10 @@ class PageRoutingChannels: public Page
                 }
             }
 
-            if (config->HasParametersChanged({CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
+            const vector<MP_ID> warnParams = {CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT};
+            if (config->HasParametersChanged(warnParams))
             {
-                for (auto const& index : config->GetChangedParameterIndexes({CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN, CHANNEL_INSERT_POINT, CHANNEL_INSERT_DSP_SLOT}))
+                for (auto const& index : config->GetChangedParameterIndexes(warnParams))
                 {
                     String warning = config->GetChannelInsertConflictWarning(index, config->GetUint(CHANNEL_INSERT_SEND, index), config->GetUint(CHANNEL_INSERT_RETURN, index));
                     if (warning.length() > 0) ShowWarningBanner(warning);
